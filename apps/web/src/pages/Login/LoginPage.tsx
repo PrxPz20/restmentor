@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import logo from '../../assets/logo.svg';
 import waiterImg from '../../assets/waiter.jpg';
+import { useNavigate } from 'react-router-dom';
 
 export default function LoginPage() {
   const [accountNumber, setAccountNumber] = useState('');
@@ -9,6 +10,7 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+  const navigate = useNavigate();
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -46,7 +48,7 @@ export default function LoginPage() {
       localStorage.setItem('user', JSON.stringify(data.user));
       localStorage.setItem('restaurant', JSON.stringify(data.restaurant));
 
-      window.location.href = '/tables';
+      navigate('/tables');
     } catch {
       setError('Unable to connect to server');
       setIsLoading(false);

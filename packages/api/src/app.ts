@@ -3,6 +3,7 @@ import cors from '@fastify/cors';
 import jwt from '@fastify/jwt';
 import rateLimit from '@fastify/rate-limit';
 import { authRoutes } from './routes/auth.js';
+import { tableRoutes } from './routes/tables.js';
 import 'dotenv/config';
 
 export async function buildApp() {
@@ -19,24 +20,20 @@ export async function buildApp() {
     },
   });
 
-  // ── CORS ────────────────────────────────────────────
   await app.register(cors, {
     origin: process.env.CORS_ORIGIN ?? 'http://localhost:5173',
     credentials: true,
   });
 
-  // ── JWT ─────────────────────────────────────────────
   await app.register(jwt, {
     secret: process.env.JWT_SECRET ?? 'dev-secret-change-in-production',
   });
 
-  // ── Rate Limiting ───────────────────────────────────
   await app.register(rateLimit, {
     max: 100,
     timeWindow: '1 minute',
   });
 
-  // ── Health Check ────────────────────────────────────
   app.get('/api/health', async () => {
     return {
       status: 'ok',
@@ -45,8 +42,8 @@ export async function buildApp() {
     };
   });
 
-  // ── Routes ──────────────────────────────────────────
   await app.register(authRoutes, { prefix: '/api/auth' });
+  await app.register(tableRoutes, { prefix: '/api/tables' });
 
   return app;
 }

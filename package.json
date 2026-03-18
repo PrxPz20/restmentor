@@ -1,0 +1,17 @@
+{
+  "name": "restmentor",
+  "version": "0.1.0",
+  "private": true,
+  "description": "AI-powered restaurant order management SaaS",
+  "scripts": {
+    "dev": "pnpm run --parallel dev:api dev:web",
+    "dev:api": "pnpm --filter @restmentor/api dev",
+    "dev:web": "pnpm --filter @restmentor/web dev",
+    "build": "pnpm run --parallel build",
+    "clean": "find . -name 'node_modules' -type d -prune -exec rm -rf {} + && find . -name 'dist' -type d -prune -exec rm -rf {} +"
+  },
+  "engines": {
+    "node": ">=20.0.0",
+    "pnpm": ">=9.0.0"
+  }
+}

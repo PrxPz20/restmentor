@@ -26,8 +26,6 @@ export default function TableConfigPage() {
   const [error, setError] = useState('');
 
   const user = JSON.parse(localStorage.getItem('user') || '{}');
-
-  // Get table label passed via navigation state
   const tableLabel = (location.state as { tableLabel?: string })?.tableLabel || 'Table';
 
   const updateCount = (key: string, delta: number) => {
@@ -90,77 +88,60 @@ export default function TableConfigPage() {
   };
 
   return (
-    <div className="min-h-screen" style={{ backgroundColor: '#EEEEEE', fontFamily: "'Fira Sans', sans-serif" }}>
+    <div className="min-h-screen" style={{ backgroundColor: 'var(--color-background)', fontFamily: 'var(--font-family)' }}>
 
-      {/* Header */}
       <Header userName={user.name} />
 
-      {/* Content */}
-      <div style={{ paddingLeft: '36px', paddingRight: '36px', paddingTop: '60px' }}>
+      <div style={{ paddingLeft: 'var(--page-padding)', paddingRight: 'var(--page-padding)', paddingTop: 'var(--section-top)' }}>
 
         {/* Subheader */}
         <div className="flex items-center justify-between mb-4">
-          <span style={{ color: '#032813', fontSize: '12px', fontWeight: 600 }}>Configuration</span>
-          <span style={{ color: '#032813', fontSize: '12px', fontWeight: 300, opacity: 0.5 }}>
+          <span style={{ color: 'var(--color-primary)', fontSize: 'var(--text-sm)', fontWeight: 'var(--font-semibold)' }}>Configuration</span>
+          <span style={{ color: 'var(--color-primary)', fontSize: 'var(--text-sm)', fontWeight: 'var(--font-light)', opacity: 0.5 }}>
             {tableLabel}
           </span>
         </div>
 
         {/* Personas Card */}
-        <div
-          className="w-full p-5 mb-5"
-          style={{
-            backgroundColor: '#FFFFFF',
-            borderRadius: '8px',
-            boxShadow: 'rgba(0, 0, 0, 0.05) 0px 8px 6px',
-          }}
-        >
-          {/* Card header */}
+        <div className="w-full p-5 mb-5" style={{ backgroundColor: 'var(--color-white)', borderRadius: 'var(--radius-sm)', boxShadow: 'var(--shadow-card)' }}>
           <div className="flex items-center justify-between">
-            <span style={{ color: '#032813', fontSize: '11px', fontWeight: 700, letterSpacing: '0.5px' }}>PERSONAS</span>
-            <span style={{ color: '#032813', fontSize: '12px', fontWeight: 300 }}>Quantity</span>
+            <span style={{ color: 'var(--color-primary)', fontSize: 'var(--text-xs)', fontWeight: 'var(--font-bold)', letterSpacing: '0.5px' }}>PERSONAS</span>
+            <span style={{ color: 'var(--color-primary)', fontSize: 'var(--text-sm)', fontWeight: 'var(--font-light)' }}>Quantity</span>
           </div>
 
-          {/* Separator */}
           <div style={{ paddingTop: '8px', paddingBottom: '20px' }}>
-            <div style={{ height: '1px', backgroundColor: '#EEEEEE' }} />
+            <div style={{ height: '1px', backgroundColor: 'var(--color-separator)' }} />
           </div>
 
-          {/* Persona rows */}
           <div className="flex flex-col gap-5">
             {PERSONAS.map((persona) => (
               <div key={persona.key} className="flex items-center justify-between">
-                {/* Icon + Label */}
                 <div className="flex items-center gap-3">
                   <img src={persona.icon} alt={persona.label} style={{ width: '24px', height: '24px', objectFit: 'contain' }} />
-                  <span style={{ color: '#032813', fontSize: '16px', fontWeight: 400 }}>{persona.label}</span>
+                  <span style={{ color: 'var(--color-primary)', fontSize: 'var(--text-md)', fontWeight: 'var(--font-regular)' }}>{persona.label}</span>
                 </div>
 
-                {/* Counter */}
                 <div className="flex items-center gap-2.5">
                   <button
                     onClick={() => updateCount(persona.key, -1)}
                     className="w-8 h-8 rounded-full flex items-center justify-center border-none cursor-pointer transition-opacity hover:opacity-80 active:scale-95"
-                    style={{ backgroundColor: '#D4FCE2' }}
+                    style={{ backgroundColor: 'var(--color-green)' }}
                   >
                     <svg width="14" height="2" viewBox="0 0 14 2">
-                      <line x1="0" y1="1" x2="14" y2="1" stroke="#032813" strokeWidth="2" strokeLinecap="round" />
+                      <line x1="0" y1="1" x2="14" y2="1" stroke="var(--color-primary)" strokeWidth="2" strokeLinecap="round" />
                     </svg>
                   </button>
-                  <span
-                    className="w-6 text-center"
-                    style={{ color: '#032813', fontSize: '16px', fontWeight: 500 }}
-                  >
+                  <span className="w-6 text-center" style={{ color: 'var(--color-primary)', fontSize: 'var(--text-md)', fontWeight: 'var(--font-medium)' }}>
                     {counts[persona.key as keyof typeof counts]}
                   </span>
                   <button
                     onClick={() => updateCount(persona.key, 1)}
                     className="w-8 h-8 rounded-full flex items-center justify-center border-none cursor-pointer transition-opacity hover:opacity-80 active:scale-95"
-                    style={{ backgroundColor: '#D4FCE2' }}
+                    style={{ backgroundColor: 'var(--color-green)' }}
                   >
                     <svg width="14" height="14" viewBox="0 0 14 14">
-                      <line x1="7" y1="0" x2="7" y2="14" stroke="#032813" strokeWidth="2" strokeLinecap="round" />
-                      <line x1="0" y1="7" x2="14" y2="7" stroke="#032813" strokeWidth="2" strokeLinecap="round" />
+                      <line x1="7" y1="0" x2="7" y2="14" stroke="var(--color-primary)" strokeWidth="2" strokeLinecap="round" />
+                      <line x1="0" y1="7" x2="14" y2="7" stroke="var(--color-primary)" strokeWidth="2" strokeLinecap="round" />
                     </svg>
                   </button>
                 </div>
@@ -171,11 +152,11 @@ export default function TableConfigPage() {
 
         {/* Tip */}
         <div className="flex items-center gap-2 mb-5">
-          <div className="flex items-center justify-center" style={{ backgroundColor: '#FFFFFF', padding: '18px 14px', borderRadius: '8px', flexShrink: 0 }}>
-            <span style={{ color: '#032813', fontSize: '12px', fontWeight: 700, letterSpacing: '0.5px' }}>TIP</span>
+          <div className="flex items-center justify-center" style={{ backgroundColor: 'var(--color-white)', padding: '18px 14px', borderRadius: 'var(--radius-sm)', flexShrink: 0 }}>
+            <span style={{ color: 'var(--color-primary)', fontSize: 'var(--text-sm)', fontWeight: 'var(--font-bold)', letterSpacing: '0.5px' }}>TIP</span>
           </div>
-          <div style={{ backgroundColor: '#D4FCE2', padding: '18px 14px', borderRadius: '8px', flex: 1 }}>
-            <span style={{ color: '#032813', fontSize: '12px', fontWeight: 300 }}>
+          <div style={{ backgroundColor: 'var(--color-green)', padding: '18px 14px', borderRadius: 'var(--radius-sm)', flex: 1 }}>
+            <span style={{ color: 'var(--color-primary)', fontSize: 'var(--text-sm)', fontWeight: 'var(--font-light)' }}>
               Execute this step before you approach the table.
             </span>
           </div>
@@ -183,8 +164,8 @@ export default function TableConfigPage() {
 
         {/* Error */}
         {error && (
-          <div className="flex items-center gap-1.5 mb-3 text-[13px] font-medium" style={{ color: '#c0392b' }}>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#c0392b" strokeWidth="2" className="shrink-0">
+          <div className="flex items-center gap-1.5 mb-3" style={{ color: 'var(--color-error)', fontSize: '13px', fontWeight: 'var(--font-medium)' }}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--color-error)" strokeWidth="2" className="shrink-0">
               <circle cx="12" cy="12" r="10" />
               <line x1="12" y1="8" x2="12" y2="12" />
               <line x1="12" y1="16" x2="12.01" y2="16" />
@@ -197,13 +178,15 @@ export default function TableConfigPage() {
         <button
           onClick={handleComplete}
           disabled={isLoading}
-          className="w-full h-[52px] rounded-xl text-base font-semibold cursor-pointer flex items-center justify-center transition-opacity duration-200 hover:opacity-90 disabled:opacity-80 disabled:cursor-not-allowed border-none"
+          className="w-full h-[52px] text-base cursor-pointer flex items-center justify-center transition-opacity duration-200 hover:opacity-90 disabled:opacity-80 disabled:cursor-not-allowed border-none"
           style={{
-            backgroundColor: '#032813',
-            color: '#FFFFFF',
-            boxShadow: '0px 4px 8px rgba(3, 40, 19, 0.25)',
-            fontFamily: "'Fira Sans', sans-serif",
+            backgroundColor: 'var(--color-primary)',
+            color: 'var(--color-white)',
+            boxShadow: 'var(--shadow-button)',
+            fontFamily: 'var(--font-family)',
+            fontWeight: 'var(--font-semibold)',
             letterSpacing: '0.3px',
+            borderRadius: 'var(--radius-md)',
           }}
         >
           {isLoading ? (

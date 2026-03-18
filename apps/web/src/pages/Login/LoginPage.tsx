@@ -1,7 +1,7 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import logo from '../../assets/logo.svg';
 import waiterImg from '../../assets/waiter.jpg';
-import { useNavigate } from 'react-router-dom';
 
 export default function LoginPage() {
   const [accountNumber, setAccountNumber] = useState('');
@@ -56,24 +56,19 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-5" style={{ backgroundColor: '#EEEEEE', fontFamily: "'Fira Sans', sans-serif" }}>
+    <div className="min-h-screen flex items-center justify-center p-5" style={{ backgroundColor: 'var(--color-background)', fontFamily: 'var(--font-family)' }}>
       <div className="w-full max-w-[420px] flex flex-col items-center animate-fade-in">
 
         {/* Logo */}
-        <img src={logo} alt="RestMentor" className="h-10 mb-6" />
+        <img src={logo} alt="RestMentor" className="h-10 mb-6" style={{ width: '189.89px' }}/>
 
         {/* Illustration Card */}
-        <div className="w-full rounded-[20px] overflow-hidden mb-4" style={{ backgroundColor: '#FFFFFF', boxShadow: '0px 8px 6px rgba(0, 0, 0, 0.05)' }}>
-          <img
-            src={waiterImg}
-            alt="Waiter illustration"
-            className="w-full block"
-            style={{ objectFit: 'cover', objectPosition: 'center bottom' }}
-          />
+        <div className="w-full overflow-hidden mb-4" style={{ backgroundColor: 'var(--color-white)', borderRadius: 'var(--radius-lg)', boxShadow: 'var(--shadow-card)' }}>
+          <img src={waiterImg} alt="Waiter illustration" className="w-full block" style={{ objectFit: 'cover', objectPosition: 'center bottom' }} />
         </div>
 
         {/* Form Card */}
-        <div className="w-full rounded-[20px] p-6" style={{ backgroundColor: '#D4FCE2', boxShadow: '0px 8px 6px rgba(0, 0, 0, 0.05)' }}>
+        <div className="w-full p-6" style={{ backgroundColor: 'var(--color-green)', borderRadius: 'var(--radius-lg)', boxShadow: 'var(--shadow-card)' }}>
           <form onSubmit={handleLogin} className="flex flex-col gap-3">
 
             {/* Account Number */}
@@ -82,16 +77,16 @@ export default function LoginPage() {
               placeholder="Account Number"
               value={accountNumber}
               onChange={(e) => setAccountNumber(e.target.value)}
-              className="w-full h-[50px] px-[18px] outline-none transition-shadow duration-200 focus:shadow-[0_0_0_2px_rgba(3,40,19,0.15)]"
+              className="w-full h-[50px] px-[18px] outline-none transition-shadow duration-200"
               style={{
-                backgroundColor: '#FFFFFF',
+                backgroundColor: 'var(--color-white)',
                 border: 'none',
-                color: '#032813',
-                fontFamily: "'Fira Sans', sans-serif",
-                fontSize: '12pt',
-                fontWeight: 300,
-                boxShadow: 'rgba(4, 36, 18, 0.16) 0px 3px 6px',
-                borderRadius: '8px',
+                color: 'var(--color-primary)',
+                fontFamily: 'var(--font-family)',
+                fontSize: 'var(--text-sm)',
+                fontWeight: 'var(--font-light)',
+                boxShadow: 'var(--shadow-input)',
+                borderRadius: 'var(--radius-sm)',
               }}
               autoComplete="username"
             />
@@ -103,16 +98,16 @@ export default function LoginPage() {
                 placeholder="Password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full h-[50px] px-[18px] pr-12 outline-none transition-shadow duration-200 focus:shadow-[0_0_0_2px_rgba(3,40,19,0.15)]"
+                className="w-full h-[50px] px-[18px] pr-12 outline-none transition-shadow duration-200"
                 style={{
-                  backgroundColor: '#FFFFFF',
+                  backgroundColor: 'var(--color-white)',
                   border: 'none',
-                  color: '#032813',
-                  fontFamily: "'Fira Sans', sans-serif",
-                  fontSize: '12pt',
-                  fontWeight: 300,
-                  boxShadow: 'rgba(4, 36, 18, 0.16) 0px 3px 6px',
-                  borderRadius: '8px',
+                  color: 'var(--color-primary)',
+                  fontFamily: 'var(--font-family)',
+                  fontSize: 'var(--text-sm)',
+                  fontWeight: 'var(--font-light)',
+                  boxShadow: 'var(--shadow-input)',
+                  borderRadius: 'var(--radius-sm)',
                 }}
                 autoComplete="current-password"
               />
@@ -123,13 +118,13 @@ export default function LoginPage() {
                 aria-label={showPassword ? 'Hide password' : 'Show password'}
               >
                 {showPassword ? (
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#032813" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--color-primary)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94" />
                     <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19" />
                     <line x1="1" y1="1" x2="23" y2="23" />
                   </svg>
                 ) : (
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#032813" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--color-primary)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
                     <circle cx="12" cy="12" r="3" />
                   </svg>
@@ -139,8 +134,8 @@ export default function LoginPage() {
 
             {/* Error Message */}
             {error && (
-              <div className="flex items-center gap-1.5 px-1 text-[13px] font-medium" style={{ color: '#c0392b', fontFamily: "'Fira Sans', sans-serif" }}>
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#c0392b" strokeWidth="2" className="shrink-0">
+              <div className="flex items-center gap-1.5 px-1 text-[13px]" style={{ color: 'var(--color-error)', fontFamily: 'var(--font-family)', fontWeight: 'var(--font-medium)' }}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--color-error)" strokeWidth="2" className="shrink-0">
                   <circle cx="12" cy="12" r="10" />
                   <line x1="12" y1="8" x2="12" y2="12" />
                   <line x1="12" y1="16" x2="12.01" y2="16" />
@@ -155,10 +150,10 @@ export default function LoginPage() {
                 <div
                   className="w-[22px] h-[22px] flex items-center justify-center shrink-0 transition-all duration-200"
                   style={{
-                    backgroundColor: rememberMe ? '#032813' : '#FFFFFF',
+                    backgroundColor: rememberMe ? 'var(--color-primary)' : 'var(--color-white)',
                     border: 'none',
-                    borderRadius: '8px',
-                    boxShadow: 'rgba(4, 36, 18, 0.16) 0px 3px 6px',
+                    borderRadius: 'var(--radius-sm)',
+                    boxShadow: 'var(--shadow-input)',
                   }}
                 >
                   {rememberMe && (
@@ -167,14 +162,14 @@ export default function LoginPage() {
                     </svg>
                   )}
                 </div>
-                <span style={{ color: '#032813', fontSize: '12pt', fontWeight: 300, opacity: 1, letterSpacing: '0.4px', marginLeft: '10px', fontFamily: "'Fira Sans', sans-serif" }}>
+                <span style={{ color: 'var(--color-primary)', fontSize: 'var(--text-sm)', fontWeight: 'var(--font-light)', letterSpacing: '0.4px', marginLeft: '10px', fontFamily: 'var(--font-family)' }}>
                   Remember me
                 </span>
               </label>
               <button
                 type="button"
                 className="bg-transparent border-none cursor-pointer p-0 hover:opacity-80 transition-opacity"
-                style={{ color: '#032813', fontSize: '12pt', fontWeight: 300, opacity: 0.6, letterSpacing: '0.4px', fontFamily: "'Fira Sans', sans-serif" }}
+                style={{ color: 'var(--color-primary)', fontSize: 'var(--text-sm)', fontWeight: 'var(--font-light)', opacity: 0.6, letterSpacing: '0.4px', fontFamily: 'var(--font-family)' }}
               >
                 Forgot Password
               </button>
@@ -184,8 +179,16 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full h-[52px] rounded-xl text-base font-semibold cursor-pointer flex items-center justify-center mt-1 transition-opacity duration-200 hover:opacity-90 disabled:opacity-80 disabled:cursor-not-allowed border-none"
-              style={{ backgroundColor: '#032813', color: '#FFFFFF', boxShadow: '0px 4px 8px rgba(3, 40, 19, 0.25)', fontFamily: "'Fira Sans', sans-serif", letterSpacing: '0.3px' }}
+              className="w-full h-[52px] text-base cursor-pointer flex items-center justify-center mt-1 transition-opacity duration-200 hover:opacity-90 disabled:opacity-80 disabled:cursor-not-allowed border-none"
+              style={{
+                backgroundColor: 'var(--color-primary)',
+                color: 'var(--color-white)',
+                boxShadow: 'var(--shadow-button)',
+                fontFamily: 'var(--font-family)',
+                fontWeight: 'var(--font-semibold)',
+                letterSpacing: '0.3px',
+                borderRadius: 'var(--radius-md)',
+              }}
             >
               {isLoading ? (
                 <div className="w-[22px] h-[22px] border-[2.5px] border-white/30 border-t-white rounded-full animate-spin" />
@@ -197,7 +200,10 @@ export default function LoginPage() {
         </div>
 
         {/* Create Account */}
-        <button className="mt-5 text-[15px] font-medium py-2 px-4 bg-transparent border-none cursor-pointer hover:opacity-70 transition-opacity" style={{ color: '#032813', fontFamily: "'Fira Sans', sans-serif" }}>
+        <button
+          className="mt-5 py-2 px-4 bg-transparent border-none cursor-pointer hover:opacity-70 transition-opacity"
+          style={{ color: 'var(--color-primary)', fontFamily: 'var(--font-family)', fontSize: '15px', fontWeight: 'var(--font-medium)' }}
+        >
           Create an Account
         </button>
       </div>

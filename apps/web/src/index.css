@@ -1,6 +1,63 @@
-@import url('https://fonts.googleapis.com/css2?family=Fira+Sans:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Fira+Sans:wght@300;400;500;600;700;900&display=swap');
 @import "tailwindcss";
 
+/* ── RestMentor Design System ──────────────────────────── */
+:root {
+  /* Colors */
+  --color-primary: #032813;
+  --color-background: #EEEEEE;
+  --color-white: #FFFFFF;
+  --color-green: #D4FCE2;
+  --color-occupied: #FCD8D4;
+  --color-paid: #D4DCFC;
+  --color-cleaning: #F5FCD4;
+  --color-error: #c0392b;
+  --color-separator: #EEEEEE;
+
+  /* Shadows */
+  --shadow-card: 0px 8px 6px rgba(0, 0, 0, 0.05);
+  --shadow-input: rgba(4, 36, 18, 0.16) 0px 3px 6px;
+  --shadow-button: 0px 4px 8px rgba(3, 40, 19, 0.25);
+  --shadow-focus: 0 0 0 2px rgba(3, 40, 19, 0.15);
+
+  /* Typography */
+  --font-family: 'Fira Sans', sans-serif;
+
+  /* Font Sizes */
+  --text-xs: 11px;
+  --text-sm: 12px;
+  --text-base: 14px;
+  --text-md: 16px;
+  --text-lg: 36px;
+
+  /* Font Weights */
+  --font-light: 300;
+  --font-regular: 400;
+  --font-medium: 500;
+  --font-semibold: 600;
+  --font-bold: 700;
+  --font-heavy: 900;
+
+  /* Border Radius */
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 20px;
+
+  /* Spacing */
+  --page-padding: 36px;
+  --section-top: 60px;
+}
+
+/* ── Base Styles ───────────────────────────────────────── */
+body {
+  font-family: var(--font-family);
+  background-color: var(--color-background);
+  color: var(--color-primary);
+  margin: 0;
+  padding: 0;
+}
+
+/* ── Animations ────────────────────────────────────────── */
 @keyframes fade-in {
   from { opacity: 0; transform: translateY(10px); }
   to { opacity: 1; transform: translateY(0); }

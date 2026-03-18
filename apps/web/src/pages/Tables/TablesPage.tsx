@@ -13,10 +13,10 @@ interface TableData {
 }
 
 const STATUS_COLORS: Record<TableStatus, string> = {
-  open: '#D4FCE2',
-  occupied: '#FCD8D4',
-  paid: '#D4DCFC',
-  cleaning: '#F5FCD4',
+  open: 'var(--color-green)',
+  occupied: 'var(--color-occupied)',
+  paid: 'var(--color-paid)',
+  cleaning: 'var(--color-cleaning)',
 };
 
 const STATUS_LABELS: Record<TableStatus, string> = {
@@ -88,31 +88,30 @@ export default function TablesPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: '#EEEEEE', fontFamily: "'Fira Sans', sans-serif" }}>
-        <div className="w-[22px] h-[22px] border-[2.5px] border-[#032813]/20 border-t-[#032813] rounded-full animate-spin" />
+      <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: 'var(--color-background)', fontFamily: 'var(--font-family)' }}>
+        <div className="w-[22px] h-[22px] border-[2.5px] rounded-full animate-spin" style={{ borderColor: 'rgba(3, 40, 19, 0.2)', borderTopColor: 'var(--color-primary)' }} />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen" style={{ backgroundColor: '#EEEEEE', fontFamily: "'Fira Sans', sans-serif" }}>
+    <div className="min-h-screen" style={{ backgroundColor: 'var(--color-background)', fontFamily: 'var(--font-family)' }}>
 
-      {/* Header */}
       <Header userName={user.name} />
 
       {/* Subheader */}
-      <div className="flex items-center justify-between pt-4 pb-2" style={{ paddingLeft: '36px', paddingRight: '36px', paddingTop: '60px' }}>
-        <span style={{ color: '#032813', fontSize: '12px', fontWeight: 600 }}>Select Table</span>
+      <div className="flex items-center justify-between pb-2" style={{ paddingLeft: 'var(--page-padding)', paddingRight: 'var(--page-padding)', paddingTop: 'var(--section-top)' }}>
+        <span style={{ color: 'var(--color-primary)', fontSize: 'var(--text-sm)', fontWeight: 'var(--font-semibold)' }}>Select Table</span>
         <div className="flex items-center gap-4">
           <button
             onClick={() => setFilter(filter === 'open' ? 'all' : 'open')}
             className="bg-transparent border-none cursor-pointer p-0 transition-opacity"
             style={{
-              color: '#032813',
-              fontSize: '12px',
-              fontWeight: 400,
+              color: 'var(--color-primary)',
+              fontSize: 'var(--text-sm)',
+              fontWeight: 'var(--font-regular)',
               opacity: filter === 'open' ? 1 : 0.4,
-              fontFamily: "'Fira Sans', sans-serif",
+              fontFamily: 'var(--font-family)',
             }}
           >
             Open
@@ -121,11 +120,11 @@ export default function TablesPage() {
             onClick={() => setFilter(filter === 'occupied' ? 'all' : 'occupied')}
             className="bg-transparent border-none cursor-pointer p-0 transition-opacity"
             style={{
-              color: '#032813',
-              fontSize: '12px',
-              fontWeight: 400,
+              color: 'var(--color-primary)',
+              fontSize: 'var(--text-sm)',
+              fontWeight: 'var(--font-regular)',
               opacity: filter === 'occupied' ? 1 : 0.4,
-              fontFamily: "'Fira Sans', sans-serif",
+              fontFamily: 'var(--font-family)',
             }}
           >
             Occupied
@@ -133,13 +132,12 @@ export default function TablesPage() {
         </div>
       </div>
 
-      {/* Error */}
       {error && (
-        <div className="py-2 text-sm" style={{ color: '#c0392b', paddingLeft: '36px', paddingRight: '36px' }}>{error}</div>
+        <div className="py-2" style={{ color: 'var(--color-error)', paddingLeft: 'var(--page-padding)', paddingRight: 'var(--page-padding)', fontSize: 'var(--text-sm)' }}>{error}</div>
       )}
 
       {/* Table Grid */}
-      <div className="grid grid-cols-2 gap-3" style={{ paddingLeft: '36px', paddingRight: '36px' }}>
+      <div className="grid grid-cols-2 gap-3" style={{ paddingLeft: 'var(--page-padding)', paddingRight: 'var(--page-padding)' }}>
         {filteredTables.map((table) => (
           <button
             key={table.id}
@@ -147,23 +145,20 @@ export default function TablesPage() {
             className="text-left border-none cursor-pointer p-4 transition-transform duration-150 active:scale-[0.97]"
             style={{
               backgroundColor: STATUS_COLORS[table.status],
-              borderRadius: '8px',
-              boxShadow: 'rgba(0, 0, 0, 0.05) 0px 8px 6px',
-              fontFamily: "'Fira Sans', sans-serif",
+              borderRadius: 'var(--radius-sm)',
+              boxShadow: 'var(--shadow-card)',
+              fontFamily: 'var(--font-family)',
             }}
           >
-            {/* Top row: Status + Seats */}
             <div className="flex items-center justify-between mb-2">
-              <span style={{ color: '#032813', fontSize: '12px', fontWeight: 600 }}>
+              <span style={{ color: 'var(--color-primary)', fontSize: 'var(--text-sm)', fontWeight: 'var(--font-semibold)' }}>
                 {STATUS_LABELS[table.status]}
               </span>
-              <span style={{ color: '#032813', fontSize: '12px', fontWeight: 300 }}>
+              <span style={{ color: 'var(--color-primary)', fontSize: 'var(--text-sm)', fontWeight: 'var(--font-light)' }}>
                 6 Seats
               </span>
             </div>
-
-            {/* Table number */}
-            <div style={{ color: '#032813', fontSize: '36px', fontWeight: 900, lineHeight: 1.1 }}>
+            <div style={{ color: 'var(--color-primary)', fontSize: 'var(--text-lg)', fontWeight: 'var(--font-heavy)', lineHeight: 1.1 }}>
               {getTableNumber(table.label)}
             </div>
           </button>

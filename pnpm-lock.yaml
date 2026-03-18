@@ -74,6 +74,9 @@ importers:
       '@fastify/websocket':
         specifier: ^11.0.0
         version: 11.2.0
+      '@neondatabase/serverless':
+        specifier: ^0.10.4
+        version: 0.10.4
       '@restmentor/db':
         specifier: workspace:*
         version: link:../db
@@ -86,6 +89,9 @@ importers:
       dotenv:
         specifier: ^16.4.0
         version: 16.6.1
+      drizzle-orm:
+        specifier: ^0.39.3
+        version: 0.39.3(@neondatabase/serverless@0.10.4)(@types/pg@8.18.0)
       fastify:
         specifier: ^5.2.0
         version: 5.8.2

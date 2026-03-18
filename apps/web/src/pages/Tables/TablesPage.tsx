@@ -70,7 +70,7 @@ export default function TablesPage() {
 
   const handleTableTap = (table: TableData) => {
     if (table.status === 'open') {
-      navigate(`/tables/${table.id}/configure`);
+      navigate(`/tables/${table.id}/configure`, { state: { tableLabel: table.label } });
     } else if (table.status === 'occupied') {
       navigate(`/sessions/${table.current_session_id}/order`);
     }

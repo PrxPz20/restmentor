@@ -117,6 +117,9 @@ importers:
       '@neondatabase/serverless':
         specifier: ^0.10.0
         version: 0.10.4
+      bcryptjs:
+        specifier: ^2.4.3
+        version: 2.4.3
       dotenv:
         specifier: ^16.4.0
         version: 16.6.1
@@ -124,6 +127,9 @@ importers:
         specifier: ^0.39.0
         version: 0.39.3(@neondatabase/serverless@0.10.4)(@types/pg@8.18.0)
     devDependencies:
+      '@types/bcryptjs':
+        specifier: ^2.4.6
+        version: 2.4.6
       drizzle-kit:
         specifier: ^0.30.0
         version: 0.30.6

@@ -5,6 +5,7 @@ import rateLimit from '@fastify/rate-limit';
 import { authRoutes } from './routes/auth.js';
 import { tableRoutes } from './routes/tables.js';
 import { sessionRoutes } from './routes/sessions.js';
+import { orderRoutes } from './routes/orders.js';
 import 'dotenv/config';
 
 export async function buildApp() {
@@ -45,7 +46,8 @@ export async function buildApp() {
 
   await app.register(authRoutes, { prefix: '/api/auth' });
   await app.register(tableRoutes, { prefix: '/api/tables' });
-  await app.register(sessionRoutes, { prefix: '/api' });
+  await app.register(sessionRoutes, { prefix: '/api/tables' });
+  await app.register(orderRoutes, { prefix: '/api' });
 
   return app;
 }

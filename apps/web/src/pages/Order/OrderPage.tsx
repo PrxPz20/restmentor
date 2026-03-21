@@ -161,7 +161,7 @@ export default function OrderPage() {
       <div style={{ paddingLeft: 'var(--page-padding)', paddingRight: 'var(--page-padding)', paddingTop: 'var(--section-top)' }}>
 
         {/* Subheader */}
-        <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center justify-between mb-2">
           <span style={{ color: 'var(--color-primary)', fontSize: 'var(--text-sm)', fontWeight: 'var(--font-semibold)' }}>Order</span>
           <span style={{ color: 'var(--color-primary)', fontSize: 'var(--text-sm)', fontWeight: 'var(--font-light)', opacity: 0.5 }}>
             Table 01
@@ -170,62 +170,78 @@ export default function OrderPage() {
 
         {/* TO SHARE */}
         <div className="mb-6 p-4" style={{ backgroundColor: 'var(--color-white)', borderRadius: 'var(--radius-sm)', boxShadow: 'var(--shadow-card)' }}>
-          <div className="mb-3">
+          <div className="mb-2">
             <span style={{ color: 'var(--color-primary)', fontSize: 'var(--text-xs)', fontWeight: 'var(--font-bold)', letterSpacing: '0.5px' }}>TO SHARE</span>
           </div>
-          <div className="grid grid-cols-4 gap-3">
-            {/* Add button */}
-            <button
-              onClick={handleShareTap}
-              className="flex items-center justify-center border-none cursor-pointer transition-opacity hover:opacity-80 active:scale-95 aspect-square"
-              style={{
-                backgroundColor: 'var(--color-green)',
-                borderRadius: 'var(--radius-sm)',
-              }}
-            >
-              <svg width="20" height="20" viewBox="0 0 20 20">
-                <line x1="10" y1="0" x2="10" y2="20" stroke="var(--color-primary)" strokeWidth="2" strokeLinecap="round" />
-                <line x1="0" y1="10" x2="20" y2="10" stroke="var(--color-primary)" strokeWidth="2" strokeLinecap="round" />
-              </svg>
-            </button>
 
+          {/* Separator */}
+          <div style={{ height: '1px', backgroundColor: 'var(--color-separator)', marginBottom: '10px' }} />
+
+          <div className="grid grid-cols-4 gap-3">
             {/* Shared items */}
-            {sharedItems.map((item) => (
+            {sharedItems.map((item, index) => (
               <div
                 key={item.id}
-                className="flex flex-col items-center justify-center aspect-square"
+                // className="flex flex-col justify-between p-3"
+                className="flex flex-col justify-between p-3 overflow-hidden"
                 style={{
-                  backgroundColor: 'var(--color-background)',
+                  backgroundColor: 'var(--color-green)',
                   borderRadius: 'var(--radius-sm)',
-                  padding: '8px',
+                  height: '110px',
                 }}
               >
-                <span style={{ fontSize: '10px', fontWeight: 'var(--font-medium)', color: 'var(--color-primary)', textAlign: 'center', lineHeight: 1.2 }}>
-                  {item.menuItemName}
-                </span>
-                <span style={{ fontSize: '9px', fontWeight: 'var(--font-light)', color: 'var(--color-primary)', opacity: 0.6, marginTop: '4px' }}>
-                  x{item.quantity}
-                </span>
+                <div className="flex flex-col items-center">
+                  <span style={{ color: 'var(--color-primary)', fontSize: 'var(--text-md)', fontWeight: 'var(--font-medium)', textAlign: 'center' }}>
+                    {String(index + 1)}
+                  </span>
+                  <span style={{ color: 'var(--color-primary)', fontSize: '10px', fontWeight: 'var(--font-medium)', textAlign: 'center', lineHeight: 1.2, marginTop: '2px' }}>
+                    {item.menuItemName}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span style={{ color: 'var(--color-primary)', fontSize: 'var(--text-sm)', fontWeight: 'var(--font-regular)' }}>
+                    x{item.quantity}
+                  </span>
+                  <span style={{ color: 'var(--color-primary)', fontSize: 'var(--text-sm)', fontWeight: 'var(--font-regular)' }}>
+                    {Number(item.menuItemPrice).toFixed(2)}
+                  </span>
+                </div>
               </div>
             ))}
 
-            {/* Empty placeholders */}
-            {Array.from({ length: Math.max(0, 3 - sharedItems.length) }).map((_, i) => (
+            {/* Add button */}
+            <button
+              onClick={handleShareTap}
+              className="flex items-center justify-center border-none cursor-pointer transition-opacity hover:opacity-80 active:scale-95"
+              style={{
+                backgroundColor: 'var(--color-green)',
+                borderRadius: 'var(--radius-sm)',
+                height: '110px',
+              }}
+            >
               <div
-                key={`empty-${i}`}
-                className="aspect-square"
+                className="flex items-center justify-center"
                 style={{
-                  backgroundColor: 'var(--color-background)',
-                  borderRadius: 'var(--radius-sm)',
+                  width: '32px',
+                  height: '32px',
+                  borderRadius: '50%',
+                  backgroundColor: 'rgba(255,255,255,0.6)',
+                  boxShadow: '0px 2px 4px rgba(0,0,0,0.1)',
                 }}
-              />
-            ))}
+              >
+                <svg width="16" height="16" viewBox="0 0 16 16">
+                  <line x1="8" y1="0" x2="8" y2="16" stroke="var(--color-primary)" strokeWidth="1.5" strokeLinecap="round" />
+                  <line x1="0" y1="8" x2="16" y2="8" stroke="var(--color-primary)" strokeWidth="1.5" strokeLinecap="round" />
+                </svg>
+              </div>
+            </button>
+
           </div>
         </div>
 
         {/* NEW ORDER */}
         <div className="mb-6">
-          <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center justify-between mb-2">
             <span style={{ color: 'var(--color-primary)', fontSize: 'var(--text-xs)', fontWeight: 'var(--font-bold)', letterSpacing: '0.5px' }}>NEW ORDER</span>
             <span style={{ color: 'var(--color-primary)', fontSize: 'var(--text-sm)', fontWeight: 'var(--font-light)' }}>Individual Order</span>
           </div>
@@ -255,7 +271,7 @@ export default function OrderPage() {
 
         {/* SEGMENTS */}
         <div className="mb-4">
-          <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center justify-between mb-2">
             <span style={{ color: 'var(--color-primary)', fontSize: 'var(--text-xs)', fontWeight: 'var(--font-bold)', letterSpacing: '0.5px' }}>SEGMENTS</span>
             <span style={{ color: 'var(--color-primary)', fontSize: 'var(--text-sm)', fontWeight: 'var(--font-light)' }}>Grouping Personas with similar choices</span>
           </div>

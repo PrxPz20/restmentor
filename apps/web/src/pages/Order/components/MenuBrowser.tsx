@@ -92,7 +92,7 @@ export default function MenuBrowser({ activeGender, onSelectItem, onClose, onSwi
             paddingRight: 'var(--page-padding)',
             backgroundColor: 'rgba(238, 238, 238, 0.4)',
             backdropFilter: 'blur(20px)',
-            WebkitBackdropFilter: 'blur(20px)',
+            WebkitBackdropFilter: 'blur(8px)',
           }}
         >
           {GENDER_CONFIG.map((g) => (

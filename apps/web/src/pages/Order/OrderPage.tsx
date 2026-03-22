@@ -396,7 +396,7 @@ export default function OrderPage() {
 
         {/* Process Order Button */}
         <button
-          className="w-full h-[52px] text-base cursor-pointer flex items-center justify-center transition-opacity duration-200 hover:opacity-90 border-none mb-8"
+          className="w-full h-[52px] text-base cursor-pointer flex items-center justify-center transition-opacity duration-200 hover:opacity-90 border-none mb-[8px]"
           style={{
             backgroundColor: 'var(--color-primary)',
             color: 'var(--color-white)',
@@ -409,6 +409,22 @@ export default function OrderPage() {
         >
           Process Order
         </button>
+
+        {/* Cleaning Request Button */}
+        <button
+          className="w-full h-[52px] text-base cursor-pointer flex items-center justify-center transition-opacity duration-200 hover:opacity-90 border-none mb-[36px]"
+          style={{
+            backgroundColor: 'var(--color-cleaning)',
+            color: 'var(--color-primary)',
+            fontFamily: 'var(--font-family)',
+            fontWeight: 'var(--font-semibold)',
+            letterSpacing: '0.3px',
+            borderRadius: 'var(--radius-md)',
+          }}
+        >
+          Cleaning Request
+        </button>
+
       </div>
     </div>
   );

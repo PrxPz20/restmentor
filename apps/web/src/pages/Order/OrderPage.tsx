@@ -127,11 +127,22 @@ export default function OrderPage() {
   const sharedItems = allItems.filter((i) => i.genderTarget === 'shared');
   const genderedItems = allItems.filter((i) => i.genderTarget !== 'shared');
 
-  // Group gendered items by gender
+  // Group by gender, sort by first-ordered, kids always last
   const groupedByGender: Record<string, typeof genderedItems> = {};
   genderedItems.forEach((item) => {
     if (!groupedByGender[item.genderTarget]) groupedByGender[item.genderTarget] = [];
     groupedByGender[item.genderTarget]!.push(item);
+  });
+
+  const sortedGenderKeys = Object.keys(groupedByGender).sort((a, b) => {
+    if (a === 'kid') return 1;
+    if (b === 'kid') return -1;
+    return 0;
+  });
+
+  const sortedGroupedByGender: Record<string, typeof genderedItems> = {};
+  sortedGenderKeys.forEach((key) => {
+    sortedGroupedByGender[key] = groupedByGender[key]!;
   });
 
   if (isLoading) {
@@ -169,7 +180,7 @@ export default function OrderPage() {
         </div>
 
         {/* TO SHARE */}
-        <div className="mb-6 p-4" style={{ backgroundColor: 'var(--color-white)', borderRadius: 'var(--radius-sm)', boxShadow: 'var(--shadow-card)' }}>
+        <div className="mb-4 p-4" style={{ backgroundColor: 'var(--color-white)', borderRadius: 'var(--radius-sm)', boxShadow: 'var(--shadow-card)' }}>
           <div className="mb-2">
             <span style={{ color: 'var(--color-primary)', fontSize: 'var(--text-xs)', fontWeight: 'var(--font-bold)', letterSpacing: '0.5px' }}>TO SHARE</span>
           </div>
@@ -177,7 +188,8 @@ export default function OrderPage() {
           {/* Separator */}
           <div style={{ height: '1px', backgroundColor: 'var(--color-separator)', marginBottom: '10px' }} />
 
-          <div className="grid grid-cols-4 gap-3">
+          {/* <div className="grid grid-cols-4 gap-3"> */}
+          <div className="grid grid-cols-3 gap-3">
             {/* Shared items */}
             {sharedItems.map((item, index) => (
               <div
@@ -203,7 +215,7 @@ export default function OrderPage() {
                     x{item.quantity}
                   </span>
                   <span style={{ color: 'var(--color-primary)', fontSize: 'var(--text-sm)', fontWeight: 'var(--font-regular)' }}>
-                    {Number(item.menuItemPrice).toFixed(2)}
+                    €{Number(item.menuItemPrice).toFixed(2)}
                   </span>
                 </div>
               </div>
@@ -240,7 +252,7 @@ export default function OrderPage() {
         </div>
 
         {/* NEW ORDER */}
-        <div className="mb-6">
+        <div className="mb-4">
           <div className="flex items-center justify-between mb-2">
             <span style={{ color: 'var(--color-primary)', fontSize: 'var(--text-xs)', fontWeight: 'var(--font-bold)', letterSpacing: '0.5px' }}>NEW ORDER</span>
             <span style={{ color: 'var(--color-primary)', fontSize: 'var(--text-sm)', fontWeight: 'var(--font-light)' }}>Individual Order</span>
@@ -271,7 +283,7 @@ export default function OrderPage() {
 
         {/* SEGMENTS */}
         <div className="mb-4">
-          <div className="flex items-center justify-between mb-2">
+          <div className="flex items-center justify-between mb-3">
             <span style={{ color: 'var(--color-primary)', fontSize: 'var(--text-xs)', fontWeight: 'var(--font-bold)', letterSpacing: '0.5px' }}>SEGMENTS</span>
             <span style={{ color: 'var(--color-primary)', fontSize: 'var(--text-sm)', fontWeight: 'var(--font-light)' }}>Grouping Personas with similar choices</span>
           </div>
@@ -285,29 +297,80 @@ export default function OrderPage() {
               <span style={{ color: 'var(--color-primary)', fontSize: 'var(--text-sm)', fontWeight: 'var(--font-light)', opacity: 0.4 }}>Add some orders</span>
             </div>
           ) : (
-            <div className="flex flex-col gap-3">
-              {Object.entries(groupedByGender).map(([gender, items]) => (
-                <div
-                  key={gender}
-                  className="p-4"
-                  style={{ backgroundColor: 'var(--color-white)', borderRadius: 'var(--radius-sm)', boxShadow: 'var(--shadow-card)' }}
-                >
-                  <div className="flex items-center gap-2 mb-3">
-                    <img src={GENDER_ICONS[gender] || menIcon} alt={gender} style={{ width: '18px', height: '18px', objectFit: 'contain' }} />
-                    <span style={{ color: 'var(--color-primary)', fontSize: 'var(--text-sm)', fontWeight: 'var(--font-semibold)', textTransform: 'capitalize' }}>{gender}</span>
-                  </div>
-                  {items.map((item) => (
-                    <div key={item.id} className="flex items-center justify-between py-1.5">
-                      <span style={{ color: 'var(--color-primary)', fontSize: 'var(--text-sm)', fontWeight: 'var(--font-regular)' }}>
-                        {item.menuItemName} x{item.quantity}
-                      </span>
-                      <span style={{ color: 'var(--color-primary)', fontSize: 'var(--text-sm)', fontWeight: 'var(--font-light)' }}>
-                        ${Number(item.menuItemPrice).toFixed(2)}
+            <div className="p-5" style={{ backgroundColor: 'var(--color-white)', borderRadius: 'var(--radius-sm)', boxShadow: 'var(--shadow-card)' }}>
+              {Object.entries(sortedGroupedByGender).map(([gender, items], groupIndex) => {
+                const groupLetter = String.fromCharCode(65 + groupIndex);
+                const genderLabel = gender.charAt(0).toUpperCase() + gender.slice(1);
+                const genderIcon = GENDER_ICONS[gender] || menIcon;
+
+                return (
+                  <div key={gender}>
+                    {/* Separator between groups */}
+                    {groupIndex > 0 && (
+                      <div style={{ height: '1px', backgroundColor: 'var(--color-separator)', marginBottom: '10px', marginTop: '16px' }} />
+                    )}
+
+                    {/* Group label */}
+                    <div className="mb-3">
+                      <span style={{ color: 'var(--color-primary)', fontSize: 'var(--text-xs)', fontWeight: 'var(--font-bold)', letterSpacing: '0.5px' }}>
+                        GROUP {groupLetter}
                       </span>
                     </div>
-                  ))}
-                </div>
-              ))}
+
+                    {/* Persona header */}
+                    <div className="flex items-center gap-3 mb-3">
+                      <img src={genderIcon} alt={genderLabel} style={{ width: '28px', height: '28px', objectFit: 'contain' }} />
+                      <span style={{ color: 'var(--color-primary)', fontSize: 'var(--text-md)', fontWeight: 'var(--font-semibold)' }}>
+                        {genderLabel}
+                      </span>
+                    </div>
+
+                    {/* Items list */}
+                    {items.map((item) => (
+                      <div key={item.id} className="flex items-start justify-between py-2 ml-1">
+                        <div className="flex items-start gap-3">
+                          <span style={{ color: 'var(--color-primary)', fontSize: 'var(--text-sm)', fontWeight: 'var(--font-bold)', minWidth: '24px' }}>
+                            {item.menuItemId.slice(-4).replace(/\D/g, '').slice(0, 2) || '00'}
+                          </span>
+                          <span style={{ color: 'var(--color-primary)', fontSize: 'var(--text-sm)', fontWeight: 'var(--font-light)' }}>
+                            {item.menuItemName}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-3" style={{ flexShrink: 0, marginLeft: '16px' }}>
+                          {item.quantity > 1 && (
+                            <span style={{ color: 'var(--color-primary)', fontSize: 'var(--text-sm)', fontWeight: 'var(--font-light)', opacity: 0.5 }}>
+                              x{item.quantity}
+                            </span>
+                          )}
+                          <span style={{ color: 'var(--color-primary)', fontSize: 'var(--text-sm)', fontWeight: 'var(--font-light)' }}>
+                            €{Number(item.menuItemPrice).toFixed(2)}
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+
+                    {/* AI Suggestion bar (placeholder - functional in Phase 3) */}
+                    {items.some((i) => i.aiSuggested) && (
+                      <div
+                        className="flex items-center gap-3 mt-4 p-4"
+                        style={{ backgroundColor: 'var(--color-green)', borderRadius: 'var(--radius-sm)' }}
+                      >
+                        <span style={{ fontSize: '20px' }}>✦</span>
+                        {items.filter((i) => i.aiSuggested).map((item) => (
+                          <div key={item.id} className="flex flex-col">
+                            <span style={{ color: 'var(--color-primary)', fontSize: 'var(--text-sm)', fontWeight: 'var(--font-semibold)' }}>
+                              {item.menuItemName}
+                            </span>
+                            <span style={{ color: 'var(--color-primary)', fontSize: 'var(--text-sm)', fontWeight: 'var(--font-regular)' }}>
+                              {Number(item.menuItemPrice).toFixed(2)}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           )}
         </div>

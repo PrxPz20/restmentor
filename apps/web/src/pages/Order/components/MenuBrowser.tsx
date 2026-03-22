@@ -208,7 +208,7 @@ export default function MenuBrowser({ activeGender, onSelectItem, onClose, onSwi
                           </div>
                         </div>
                         <span style={{ color: 'var(--color-primary)', fontSize: 'var(--text-sm)', fontWeight: 'var(--font-regular)', marginLeft: '16px', flexShrink: 0 }}>
-                          {Number(item.price).toFixed(2)}
+                          €{Number(item.price).toFixed(2)}
                         </span>
                       </button>
                     ))}

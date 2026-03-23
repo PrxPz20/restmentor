@@ -150,11 +150,11 @@ const handleProcessOrder = async () => {
 
       navigate(`/sessions/${sessionId}/confirmed`, {
         state: {
+          sessionId,
           roundNumber: data.roundNumber,
           kitchenItems: data.kitchenItems,
           barItems: data.barItems,
           totalItems: data.totalItems,
-          sessionId,
           tableLabel: 'Table 01',
         },
       });

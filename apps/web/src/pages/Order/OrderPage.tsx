@@ -41,6 +41,7 @@ export default function OrderPage() {
   const [activeGender, setActiveGender] = useState<GenderTarget | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
+  const [isSending, setIsSending] = useState(false);
 
   const user = JSON.parse(localStorage.getItem('user') || '{}');
   const token = localStorage.getItem('accessToken');
@@ -119,6 +120,50 @@ export default function OrderPage() {
     setActiveGender('shared');
     setMenuOpen(true);
   };
+
+
+const handleProcessOrder = async () => {
+    if (!token || !currentOrderId) return;
+
+    // Check if there are any items
+    if (allItems.length === 0) {
+      setError('Add some items before processing the order');
+      return;
+    }
+
+    setIsSending(true);
+    setError('');
+
+    try {
+      const response = await fetch(`/api/orders/${currentOrderId}/send`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        setError(data.message || 'Failed to send order');
+        setIsSending(false);
+        return;
+      }
+
+      navigate(`/sessions/${sessionId}/confirmed`, {
+        state: {
+          roundNumber: data.roundNumber,
+          kitchenItems: data.kitchenItems,
+          barItems: data.barItems,
+          totalItems: data.totalItems,
+          sessionId,
+          tableLabel: 'Table 01',
+        },
+      });
+    } catch {
+      setError('Unable to send order');
+      setIsSending(false);
+    }
+  };
+
 
   // Gather all items across all orders
   const allItems = orders.flatMap((o) =>
@@ -395,8 +440,10 @@ export default function OrderPage() {
         )}
 
         {/* Process Order Button */}
-        <button
-          className="w-full h-[52px] text-base cursor-pointer flex items-center justify-center transition-opacity duration-200 hover:opacity-90 border-none mb-[8px]"
+<button
+          onClick={handleProcessOrder}
+          disabled={isSending}
+          className="w-full h-[52px] text-base cursor-pointer flex items-center justify-center transition-opacity duration-200 hover:opacity-90 disabled:opacity-80 disabled:cursor-not-allowed border-none mb-[5px]"
           style={{
             backgroundColor: 'var(--color-primary)',
             color: 'var(--color-white)',
@@ -407,7 +454,11 @@ export default function OrderPage() {
             borderRadius: 'var(--radius-md)',
           }}
         >
-          Process Order
+          {isSending ? (
+            <div className="w-[22px] h-[22px] border-[2.5px] border-white/30 border-t-white rounded-full animate-spin" />
+          ) : (
+            'Process Order'
+          )}
         </button>
 
         {/* Cleaning Request Button */}

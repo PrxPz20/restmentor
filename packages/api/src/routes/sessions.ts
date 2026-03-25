@@ -36,7 +36,8 @@ async function getTenantDbFromToken(app: FastifyInstance, request: any) {
   return { db: drizzle(tenantClient), decoded };
 }
 
-export async function sessionRoutes(app: FastifyInstance) {
+// Routes under /api/tables prefix
+export async function tableSessionRoutes(app: FastifyInstance) {
 
   // ── POST /api/tables/:id/sessions ───────────────────
   app.post('/:id/sessions', async (request, reply) => {
@@ -55,7 +56,6 @@ export async function sessionRoutes(app: FastifyInstance) {
 
       const { guestMales, guestFemales, guestKids } = parsed.data;
 
-      // Create session
       const sessionResult = await db.execute(sql`
         INSERT INTO table_sessions (table_id, waiter_id, guest_males, guest_females, guest_kids)
         VALUES (${tableId}, ${decoded.userId}, ${guestMales}, ${guestFemales}, ${guestKids})
@@ -64,7 +64,6 @@ export async function sessionRoutes(app: FastifyInstance) {
 
       const sessionId = sessionResult.rows[0]!.id as string;
 
-      // Update table status to occupied and link session
       await db.execute(sql`
         UPDATE tables SET status = 'occupied', current_session_id = ${sessionId}, updated_at = now() WHERE id = ${tableId}
       `);
@@ -84,6 +83,10 @@ export async function sessionRoutes(app: FastifyInstance) {
       return reply.status(500).send({ statusCode: 500, error: 'Internal Server Error', message: 'Failed to create session' });
     }
   });
+}
+
+// Routes under /api/sessions prefix
+export async function sessionRoutes(app: FastifyInstance) {
 
   // ── GET /api/sessions/:id ───────────────────────────
   app.get('/:id', async (request, reply) => {

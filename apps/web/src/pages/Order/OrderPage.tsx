@@ -42,6 +42,7 @@ export default function OrderPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
   const [isSending, setIsSending] = useState(false);
+  const [tableLabel, setTableLabel] = useState('');
 
   const user = JSON.parse(localStorage.getItem('user') || '{}');
   const token = localStorage.getItem('accessToken');
@@ -62,6 +63,23 @@ export default function OrderPage() {
 
       const data = await response.json();
       setOrders(data.orders);
+
+      // Fetch session to get table info
+      const sessionRes = await fetch(`/api/sessions/${sessionId}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (sessionRes.ok) {
+        const sessionData = await sessionRes.json();
+        // Fetch table label
+        const tablesRes = await fetch('/api/tables', {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (tablesRes.ok) {
+          const tablesData = await tablesRes.json();
+          const table = tablesData.tables.find((t: any) => t.id === sessionData.session.table_id);
+          if (table) setTableLabel(table.label);
+        }
+      }
 
       // If no draft order exists, create one
       if (data.orders.length === 0 || data.orders.every((o: OrderData) => o.status !== 'draft')) {
@@ -155,7 +173,7 @@ const handleProcessOrder = async () => {
           kitchenItems: data.kitchenItems,
           barItems: data.barItems,
           totalItems: data.totalItems,
-          tableLabel: 'Table 01',
+          tableLabel: tableLabel,
         },
       });
     } catch {
@@ -220,7 +238,7 @@ const handleProcessOrder = async () => {
         <div className="flex items-center justify-between mb-2">
           <span style={{ color: 'var(--color-primary)', fontSize: 'var(--text-sm)', fontWeight: 'var(--font-semibold)' }}>Order</span>
           <span style={{ color: 'var(--color-primary)', fontSize: 'var(--text-sm)', fontWeight: 'var(--font-light)', opacity: 0.5 }}>
-            Table 01
+            {tableLabel}
           </span>
         </div>
 

@@ -140,7 +140,7 @@ export default function OrderPage() {
   };
 
 
-const handleProcessOrder = async () => {
+  const handleProcessOrder = async () => {
     if (!token || !currentOrderId) return;
 
     // Check if there are any items
@@ -181,6 +181,35 @@ const handleProcessOrder = async () => {
       setIsSending(false);
     }
   };
+
+
+  const handleCleaningRequest = async () => {
+    if (!token) return;
+
+    try {
+      // Get table ID from session
+      const sessionRes = await fetch(`/api/sessions/${sessionId}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      if (!sessionRes.ok) return;
+      const sessionData = await sessionRes.json();
+      const tableId = sessionData.session.table_id;
+
+      // Update table status to cleaning
+      await fetch(`/api/tables/${tableId}/status`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ status: 'cleaning' }),
+      });
+
+      navigate(`/tables/${tableId}/cleaning`);
+    } catch {
+      setError('Failed to send cleaning request');
+    }
+  };
+
+
 
 
   // Gather all items across all orders
@@ -458,7 +487,7 @@ const handleProcessOrder = async () => {
         )}
 
         {/* Process Order Button */}
-<button
+        <button
           onClick={handleProcessOrder}
           disabled={isSending}
           className="w-full h-[52px] text-base cursor-pointer flex items-center justify-center transition-opacity duration-200 hover:opacity-90 disabled:opacity-80 disabled:cursor-not-allowed border-none mb-[5px]"
@@ -481,6 +510,7 @@ const handleProcessOrder = async () => {
 
         {/* Cleaning Request Button */}
         <button
+          onClick={handleCleaningRequest}
           className="w-full h-[52px] text-base cursor-pointer flex items-center justify-center transition-opacity duration-200 hover:opacity-90 border-none mb-[36px]"
           style={{
             backgroundColor: 'var(--color-cleaning)',

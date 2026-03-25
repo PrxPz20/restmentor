@@ -73,6 +73,8 @@ export default function TablesPage() {
       navigate(`/tables/${table.id}/configure`, { state: { tableLabel: table.label } });
     } else if (table.status === 'occupied') {
       navigate(`/sessions/${table.current_session_id}/order`);
+    } else if (table.status === 'cleaning') {
+      navigate(`/tables/${table.id}/cleaning`);
     }
   };
 

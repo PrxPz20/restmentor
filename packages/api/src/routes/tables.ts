@@ -1,8 +1,16 @@
+// restmentor/packages/api/src/routes/tables.ts
 import { FastifyInstance } from 'fastify';
 import { neon } from '@neondatabase/serverless';
 import { drizzle } from 'drizzle-orm/neon-http';
 import { sql } from 'drizzle-orm';
 import 'dotenv/config';
+import type { Server as SocketIOServer } from 'socket.io';
+
+declare module 'fastify' {
+  interface FastifyInstance {
+    io: SocketIOServer;
+  }
+}
 
 async function getTenantDbFromToken(app: FastifyInstance, request: any) {
   const masterUrl = process.env.MASTER_DATABASE_URL;
@@ -53,7 +61,7 @@ export async function tableRoutes(app: FastifyInstance) {
   // ── PATCH /api/tables/:id/status ────────────────────
   app.patch('/:id/status', async (request, reply) => {
     try {
-      const { db } = await getTenantDbFromToken(app, request);
+      const { db, decoded } = await getTenantDbFromToken(app, request);
       const { id } = request.params as { id: string };
       const { status } = request.body as { status: string };
 
@@ -69,6 +77,11 @@ export async function tableRoutes(app: FastifyInstance) {
       await db.execute(
         sql`UPDATE tables SET status = ${status}, updated_at = now() WHERE id = ${id}`
       );
+
+      app.io.to(`restaurant:${decoded.restaurantId}`).emit('table:status_changed', {
+        tableId: id,
+        newStatus: status,
+      });
 
       return reply.send({ success: true, tableId: id, newStatus: status });
     } catch (err: any) {

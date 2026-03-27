@@ -1,9 +1,17 @@
-import { FastifyInstance } from 'fastify';
+// restmentor/packages/api/src/routes/sessions.ts
 import { neon } from '@neondatabase/serverless';
 import { drizzle } from 'drizzle-orm/neon-http';
 import { sql } from 'drizzle-orm';
 import { z } from 'zod';
 import 'dotenv/config';
+import { FastifyInstance } from 'fastify';
+import type { Server as SocketIOServer } from 'socket.io';
+
+declare module 'fastify' {
+  interface FastifyInstance {
+    io: SocketIOServer;
+  }
+}
 
 const createSessionSchema = z.object({
   guestMales: z.number().min(0).default(0),
@@ -67,6 +75,11 @@ export async function tableSessionRoutes(app: FastifyInstance) {
       await db.execute(sql`
         UPDATE tables SET status = 'occupied', current_session_id = ${sessionId}, updated_at = now() WHERE id = ${tableId}
       `);
+
+      app.io.to(`restaurant:${decoded.restaurantId}`).emit('table:status_changed', {
+        tableId,
+        newStatus: 'occupied',
+      });
 
       return reply.send({
         sessionId,

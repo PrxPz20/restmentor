@@ -1,10 +1,17 @@
 // restmentor/packages/api/src/routes/orders.ts
-import { FastifyInstance } from 'fastify';
 import { neon } from '@neondatabase/serverless';
 import { drizzle } from 'drizzle-orm/neon-http';
 import { sql } from 'drizzle-orm';
 import { z } from 'zod';
 import 'dotenv/config';
+import { FastifyInstance } from 'fastify';
+import type { Server as SocketIOServer } from 'socket.io';
+
+declare module 'fastify' {
+  interface FastifyInstance {
+    io: SocketIOServer;
+  }
+}
 
 async function getTenantDbFromToken(app: FastifyInstance, request: any) {
   const masterUrl = process.env.MASTER_DATABASE_URL;

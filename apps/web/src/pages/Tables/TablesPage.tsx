@@ -1,5 +1,7 @@
-import { useState, useEffect } from 'react';
+// restmentor/apps/web/src/pages/Tables/TablesPage.tsx
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { io, Socket } from 'socket.io-client';
 import Header from '../../components/Header';
 
 type TableStatus = 'open' | 'occupied' | 'paid' | 'cleaning';
@@ -35,10 +37,37 @@ export default function TablesPage() {
   const [error, setError] = useState('');
   const navigate = useNavigate();
 
-  const user = JSON.parse(localStorage.getItem('user') || '{}');
+const user = JSON.parse(localStorage.getItem('user') || '{}');
+  const socketRef = useRef<Socket | null>(null);
 
   useEffect(() => {
     fetchTables();
+  }, []);
+
+  // ── WebSocket: subscribe to table status changes ──
+  useEffect(() => {
+    const token = localStorage.getItem('accessToken');
+    if (!token) return;
+
+    // Decode restaurantId from JWT payload
+    const payload = JSON.parse(atob(token.split('.')[1]!));
+    const restaurantId = payload.restaurantId as string;
+    if (!restaurantId) return;
+
+    const socket = io('http://localhost:3001', {
+      query: { restaurantId },
+      transports: ['websocket'],
+    });
+
+    socketRef.current = socket;
+
+    socket.on('table:status_changed', ({ tableId, newStatus }: { tableId: string; newStatus: string }) => {
+      setTables(prev =>
+        prev.map(t => t.id === tableId ? { ...t, status: newStatus as TableStatus } : t)
+      );
+    });
+
+    return () => { socket.disconnect(); };
   }, []);
 
   const fetchTables = async () => {

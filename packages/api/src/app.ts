@@ -1,3 +1,4 @@
+// restmentor/packages/api/src/app.ts
 import Fastify from 'fastify';
 import cors from '@fastify/cors';
 import jwt from '@fastify/jwt';
@@ -7,6 +8,13 @@ import { tableRoutes } from './routes/tables.js';
 import { tableSessionRoutes, sessionRoutes } from './routes/sessions.js';
 import { orderRoutes } from './routes/orders.js';
 import 'dotenv/config';
+import type { Server as SocketIOServer } from 'socket.io';
+
+declare module 'fastify' {
+  interface FastifyInstance {
+    io: SocketIOServer;
+  }
+}
 
 export async function buildApp() {
   const app = Fastify({

@@ -45,6 +45,8 @@ export default function OrderPage() {
   const [isSending, setIsSending] = useState(false);
   const [tableLabel, setTableLabel] = useState('');
   const [editingItemId, setEditingItemId] = useState<string | null>(null);
+  const [hasPendingChanges, setHasPendingChanges] = useState(false);
+  const [hasModifiedOrders, setHasModifiedOrders] = useState(false);
 
   const user = JSON.parse(localStorage.getItem('user') || '{}');
   const token = localStorage.getItem('accessToken');
@@ -52,6 +54,13 @@ export default function OrderPage() {
   useEffect(() => {
     loadOrders();
   }, []);
+
+  useEffect(() => {
+    if (!editingItemId) return;
+    function handleClickOutside() { setEditingItemId(null); }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [editingItemId]);
 
   const loadOrders = async () => {
     if (!token) { navigate('/login'); return; }
@@ -85,8 +94,16 @@ export default function OrderPage() {
         await createNewOrder();
       } else {
         const draft = data.orders.find((o: OrderData) => o.status === 'draft');
-        if (draft) setCurrentOrderId(draft.id);
+        if (draft) {
+          setCurrentOrderId(draft.id);
+          // Re-enable button if draft already has items (e.g. after page refresh)
+          if (draft.items && draft.items.length > 0) setHasPendingChanges(true);
+        }
       }
+
+      // Re-enable button if any orders are in modified state
+      const hasModified = data.orders.some((o: OrderData) => o.status === 'modified');
+      setHasModifiedOrders(hasModified);
 
       setIsLoading(false);
     } catch {
@@ -122,6 +139,7 @@ export default function OrderPage() {
         body: JSON.stringify({ menuItemId, genderTarget: activeGender, quantity: 1 }),
       });
 
+      setHasPendingChanges(true);
       await loadOrders();
     } catch {
       setError('Failed to add item');
@@ -139,7 +157,7 @@ export default function OrderPage() {
         body: JSON.stringify({ quantity: newQuantity }),
       });
 
-      setEditingItemId(null);
+      setHasPendingChanges(true);
       await loadOrders();
     } catch {
       setError('Failed to update item');
@@ -181,6 +199,7 @@ export default function OrderPage() {
         return;
       }
 
+      setHasPendingChanges(false);
       navigate(`/sessions/${sessionId}/confirmed`, {
         state: {
           sessionId,
@@ -299,7 +318,7 @@ export default function OrderPage() {
               >
                 {editingItemId === item.id ? (
                   // ── Edit controls for shared item ──
-                  <div className="flex flex-col items-center justify-center h-full gap-2">
+                  <div className="flex flex-col items-center justify-center h-full gap-2" onMouseDown={(e) => e.stopPropagation()}>
                     <div className="flex items-center gap-2">
                       <button
                         onClick={(e) => { e.stopPropagation(); handleEditItem(item.orderId, item.id, item.quantity - 1); }}
@@ -462,6 +481,7 @@ export default function OrderPage() {
                           // ── Inline edit controls ──
                           <div
                             className="flex items-center justify-between py-2 ml-1"
+                            onMouseDown={(e) => e.stopPropagation()}
                             style={{
                               borderBottom: itemIndex < items.length - 1 ? '1px solid var(--color-separator)' : 'none',
                               borderRadius: 'var(--radius-sm)',
@@ -490,17 +510,27 @@ export default function OrderPage() {
                               </button>
                               <button
                                 onClick={() => handleEditItem(item.orderId, item.id, 0)}
-                                className="border-none cursor-pointer"
-                                style={{ fontSize: '11px', fontWeight: 'var(--font-medium)', fontFamily: 'var(--font-family)', color: 'var(--color-primary)', opacity: 0.4, background: 'transparent', padding: '0 4px' }}
+                                className="border-none cursor-pointer flex items-center justify-center"
+                                style={{ width: '28px', height: '28px', borderRadius: '50%', backgroundColor: 'var(--color-background)', color: 'var(--color-error)', opacity: 0.7, border: 'none', cursor: 'pointer', flexShrink: 0 }}
+                                title="Remove item"
                               >
-                                Remove
+                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                  <polyline points="3 6 5 6 21 6" />
+                                  <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
+                                  <path d="M10 11v6M14 11v6" />
+                                  <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
+                                </svg>
                               </button>
                               <button
                                 onClick={() => setEditingItemId(null)}
-                                className="border-none cursor-pointer"
-                                style={{ fontSize: '11px', fontWeight: 'var(--font-medium)', fontFamily: 'var(--font-family)', color: 'var(--color-primary)', opacity: 0.4, background: 'transparent', padding: '0 4px' }}
+                                className="border-none cursor-pointer flex items-center justify-center"
+                                style={{ width: '28px', height: '28px', borderRadius: '50%', backgroundColor: 'var(--color-background)', color: 'var(--color-primary)', opacity: 0.5, border: 'none', cursor: 'pointer', flexShrink: 0 }}
+                                title="Cancel"
                               >
-                                Cancel
+                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                  <line x1="18" y1="6" x2="6" y2="18" />
+                                  <line x1="6" y1="6" x2="18" y2="18" />
+                                </svg>
                               </button>
                             </div>
                           </div>
@@ -544,6 +574,11 @@ export default function OrderPage() {
 
         {error && (
           <div className="flex items-center gap-1.5 mb-3" style={{ color: 'var(--color-error)', fontSize: '13px', fontWeight: 'var(--font-medium)' }}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+              <circle cx="12" cy="12" r="10" />
+              <line x1="12" y1="8" x2="12" y2="12" />
+              <line x1="12" y1="16" x2="12.01" y2="16" />
+            </svg>
             {error}
           </div>
         )}
@@ -551,9 +586,19 @@ export default function OrderPage() {
         {/* Process Order Button */}
         <button
           onClick={handleProcessOrder}
-          disabled={isSending}
-          className="w-full h-[52px] text-base cursor-pointer flex items-center justify-center transition-opacity duration-200 hover:opacity-90 disabled:opacity-80 disabled:cursor-not-allowed border-none mb-[5px]"
-          style={{ backgroundColor: 'var(--color-primary)', color: 'var(--color-white)', boxShadow: 'var(--shadow-button)', fontFamily: 'var(--font-family)', fontWeight: 'var(--font-semibold)', letterSpacing: '0.3px', borderRadius: 'var(--radius-md)' }}
+          disabled={isSending || (!hasPendingChanges && !hasModifiedOrders)}
+          className="w-full h-[52px] text-base flex items-center justify-center transition-opacity duration-200 border-none mb-[5px]"
+          style={{
+            backgroundColor: 'var(--color-primary)',
+            color: 'var(--color-white)',
+            boxShadow: hasPendingChanges ? 'var(--shadow-button)' : 'none',
+            fontFamily: 'var(--font-family)',
+            fontWeight: 'var(--font-semibold)',
+            letterSpacing: '0.3px',
+            borderRadius: 'var(--radius-md)',
+            opacity: (hasPendingChanges || hasModifiedOrders) && !isSending ? 1 : 0.4,
+            cursor: (hasPendingChanges || hasModifiedOrders) && !isSending ? 'pointer' : 'not-allowed',
+          }}
         >
           {isSending ? (
             <div className="w-[22px] h-[22px] border-[2.5px] border-white/30 border-t-white rounded-full animate-spin" />

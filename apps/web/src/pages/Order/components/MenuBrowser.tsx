@@ -1,3 +1,4 @@
+// restmentor/apps/web/src/pages/Order/components/MenuBrowser.tsx
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import menIcon from '../../../assets/men.png';

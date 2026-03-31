@@ -27,6 +27,7 @@ interface MenuBrowserProps {
   onSelectItem: (menuItemId: string) => void;
   onClose: () => void;
   onSwitchGender: (gender: GenderTarget) => void;
+  addedItemIds: string[];
 }
 
 const GENDER_CONFIG = [
@@ -35,7 +36,7 @@ const GENDER_CONFIG = [
   { key: 'kid' as GenderTarget, label: 'Kid', icon: kidIcon },
 ];
 
-export default function MenuBrowser({ activeGender, onSelectItem, onClose, onSwitchGender }: MenuBrowserProps) {
+export default function MenuBrowser({ activeGender, onSelectItem, onClose, onSwitchGender, addedItemIds }: MenuBrowserProps) {
   const [menu, setMenu] = useState<MenuCategoryData[]>([]);
   const [expandedCategory, setExpandedCategory] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -189,10 +190,12 @@ export default function MenuBrowser({ activeGender, onSelectItem, onClose, onSwi
                       <button
                         key={item.id}
                         onClick={() => handleItemTap(item.id)}
-                        className="w-full flex items-start justify-between py-4 border-none cursor-pointer bg-transparent text-left transition-opacity active:opacity-70"
+                        className="w-full flex items-start justify-between py-4 border-none cursor-pointer text-left transition-all active:scale-[0.98]"
                         style={{
                           fontFamily: 'var(--font-family)',
                           borderBottom: index < category.items.length - 1 ? '1px solid var(--color-separator)' : 'none',
+                          backgroundColor: addedItemIds.includes(item.id) ? 'var(--color-green)' : 'transparent',
+                          borderRadius: addedItemIds.includes(item.id) ? 'var(--radius-sm)' : '0',
                         }}
                       >
                         <div className="flex items-start gap-4">
@@ -208,9 +211,16 @@ export default function MenuBrowser({ activeGender, onSelectItem, onClose, onSwi
                             </span>
                           </div>
                         </div>
-                        <span style={{ color: 'var(--color-primary)', fontSize: 'var(--text-sm)', fontWeight: 'var(--font-regular)', marginLeft: '16px', flexShrink: 0 }}>
-                          €{Number(item.price).toFixed(2)}
-                        </span>
+                        <div className="flex items-center gap-2" style={{ flexShrink: 0, marginLeft: '16px' }}>
+                          {addedItemIds.includes(item.id) && (
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--color-primary)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                              <polyline points="20 6 9 17 4 12" />
+                            </svg>
+                          )}
+                          <span style={{ color: 'var(--color-primary)', fontSize: 'var(--text-sm)', fontWeight: 'var(--font-regular)' }}>
+                            €{Number(item.price).toFixed(2)}
+                          </span>
+                        </div>
                       </button>
                     ))}
                   </div>

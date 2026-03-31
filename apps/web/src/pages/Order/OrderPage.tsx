@@ -278,6 +278,7 @@ export default function OrderPage() {
       onSelectItem={handleAddItem}
       onClose={() => { setMenuOpen(false); setActiveGender(null); }}
       onSwitchGender={(g) => setActiveGender(g)}
+      addedItemIds={allItems.map(i => i.menuItemId)}
     />
   ) : null;
 

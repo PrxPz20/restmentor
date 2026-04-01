@@ -3,6 +3,7 @@ import Fastify from 'fastify';
 import cors from '@fastify/cors';
 import jwt from '@fastify/jwt';
 import rateLimit from '@fastify/rate-limit';
+import helmet from '@fastify/helmet';
 import { authRoutes } from './routes/auth.js';
 import { tableRoutes } from './routes/tables.js';
 import { tableSessionRoutes, sessionRoutes } from './routes/sessions.js';
@@ -17,6 +18,15 @@ declare module 'fastify' {
 }
 
 export async function buildApp() {
+  const jwtSecret = process.env.JWT_SECRET;
+  if (!jwtSecret || jwtSecret === 'dev-secret-change-in-production') {
+    if (process.env.NODE_ENV === 'production') {
+      throw new Error('JWT_SECRET must be set in production');
+    } else {
+      console.warn('⚠️  WARNING: JWT_SECRET is not set. Using insecure default — never do this in production.');
+    }
+  }
+
   const app = Fastify({
     logger: {
       transport: {
@@ -28,27 +38,42 @@ export async function buildApp() {
         },
       },
     },
+    bodyLimit: 1048576, // 1MB max request body
   });
 
+  // ── Security headers ──────────────────────────────────
+  await app.register(helmet, {
+    contentSecurityPolicy: false, // CSP handled at frontend level
+    crossOriginEmbedderPolicy: false,
+  });
+
+  // ── CORS ──────────────────────────────────────────────
+  const allowedOrigins = process.env.CORS_ORIGIN
+    ? process.env.CORS_ORIGIN.split(',').map(o => o.trim())
+    : ['http://localhost:5174', 'http://localhost:5175', 'http://localhost:5176'];
+
   await app.register(cors, {
-    origin: process.env.CORS_ORIGIN ?? 'http://localhost:5173',
+    origin: allowedOrigins,
     credentials: true,
   });
 
+  // ── JWT ───────────────────────────────────────────────
   await app.register(jwt, {
-    secret: process.env.JWT_SECRET ?? 'dev-secret-change-in-production',
+    secret: jwtSecret ?? 'dev-secret-change-in-production',
   });
 
+  // ── Global rate limit (all endpoints) ─────────────────
   await app.register(rateLimit, {
     max: 100,
     timeWindow: '1 minute',
+    keyGenerator: (request) => request.ip,
   });
 
+  // ── Health check (no sensitive info exposed) ──────────
   app.get('/api/health', async () => {
     return {
       status: 'ok',
       timestamp: new Date().toISOString(),
-      environment: process.env.NODE_ENV ?? 'development',
     };
   });
 

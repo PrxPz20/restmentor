@@ -1,3 +1,4 @@
+// apps/web/src/App.tsx
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import LoginPage from './pages/Login/LoginPage';
 import TablesPage from './pages/Tables/TablesPage';

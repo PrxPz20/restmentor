@@ -8,25 +8,47 @@ const PORT = Number(process.env.PORT) || 3001;
 async function start() {
   const app = await buildApp();
 
-  // ── Attach Socket.IO to Fastify's underlying HTTP server ──
+  // ── Restrict Socket.IO CORS to known origins ──────────
+  const allowedOrigins = process.env.CORS_ORIGIN
+    ? process.env.CORS_ORIGIN.split(',').map(o => o.trim())
+    : ['http://localhost:5174', 'http://localhost:5175', 'http://localhost:5176'];
+
   const io = new Server(app.server, {
     cors: {
-      origin: '*',
+      origin: allowedOrigins,
       methods: ['GET', 'POST'],
+      credentials: true,
     },
   });
 
-  // Make io available to all route handlers via app.io
   app.decorate('io', io);
 
-  // ── Room-based connections (1 room per restaurant) ──
+  // ── Room-based connections with JWT validation ────────
   io.on('connection', (socket) => {
     const restaurantId = socket.handshake.query.restaurantId as string;
+    const token = socket.handshake.auth?.token as string | undefined;
 
     if (!restaurantId) {
       app.log.warn(`Socket ${socket.id} connected without restaurantId — disconnecting`);
       socket.disconnect();
       return;
+    }
+
+    // Validate token if provided — displays may not have tokens
+    // but the restaurantId must match the token if one is provided
+    if (token) {
+      try {
+        const decoded = app.jwt.verify(token) as { restaurantId: string };
+        if (decoded.restaurantId !== restaurantId) {
+          app.log.warn(`Socket ${socket.id} token restaurantId mismatch — disconnecting`);
+          socket.disconnect();
+          return;
+        }
+      } catch {
+        app.log.warn(`Socket ${socket.id} invalid token — disconnecting`);
+        socket.disconnect();
+        return;
+      }
     }
 
     const room = `restaurant:${restaurantId}`;

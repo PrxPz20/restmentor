@@ -1,3 +1,4 @@
+// packages/db/src/connection.ts
 import { drizzle } from 'drizzle-orm/neon-http';
 import { neon } from '@neondatabase/serverless';
 import * as masterSchema from './schema/master.js';

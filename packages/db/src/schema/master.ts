@@ -1,3 +1,4 @@
+// packages/db/src/schema/master.ts
 import { pgTable, uuid, varchar, text, timestamp, jsonb, decimal } from 'drizzle-orm/pg-core';
 
 // ── Restaurants (Tenant Registry) ───────────────────────

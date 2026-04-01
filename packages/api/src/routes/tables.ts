@@ -4,6 +4,7 @@ import { neon } from '@neondatabase/serverless';
 import { drizzle } from 'drizzle-orm/neon-http';
 import { sql } from 'drizzle-orm';
 import 'dotenv/config';
+import { z } from 'zod';
 import type { Server as SocketIOServer } from 'socket.io';
 
 declare module 'fastify' {
@@ -63,16 +64,23 @@ export async function tableRoutes(app: FastifyInstance) {
     try {
       const { db, decoded } = await getTenantDbFromToken(app, request);
       const { id } = request.params as { id: string };
-      const { status } = request.body as { status: string };
 
-      const validStatuses = ['open', 'occupied', 'paid', 'cleaning'];
-      if (!validStatuses.includes(status)) {
+      const statusSchema = z.object({
+        status: z.enum(['open', 'occupied', 'paid', 'cleaning'], {
+          errorMap: () => ({ message: 'Status must be one of: open, occupied, paid, cleaning' }),
+        }),
+      });
+
+      const parsed = statusSchema.safeParse(request.body);
+      if (!parsed.success) {
         return reply.status(400).send({
           statusCode: 400,
           error: 'Bad Request',
-          message: `Status must be one of: ${validStatuses.join(', ')}`,
+          message: parsed.error.errors[0]?.message ?? 'Invalid input',
         });
       }
+
+      const { status } = parsed.data;
 
       await db.execute(
         sql`UPDATE tables SET status = ${status}, updated_at = now() WHERE id = ${id}`

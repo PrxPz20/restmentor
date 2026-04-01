@@ -1,3 +1,4 @@
+// packages/shared/src/index.ts
 // ── Table Status ────────────────────────────────────────
 export const TABLE_STATUSES = ['open', 'occupied', 'paid', 'cleaning'] as const;
 export type TableStatus = (typeof TABLE_STATUSES)[number];

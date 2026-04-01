@@ -1,3 +1,4 @@
+// packages/db/src/schema/tenant.ts
 import { pgTable, uuid, varchar, text, timestamp, integer, boolean, decimal, jsonb } from 'drizzle-orm/pg-core';
 
 // ── Users (Waiters & Restaurant Admins) ─────────────────

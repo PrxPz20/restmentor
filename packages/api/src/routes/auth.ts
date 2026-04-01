@@ -15,6 +15,10 @@ const loginAttempts = new Map<string, { count: number; lockedUntil: number }>();
 const MAX_ATTEMPTS = 5;
 const LOCKOUT_MS = 15 * 60 * 1000; // 15 minutes
 
+// ── Refresh token blocklist (revoked tokens) ──────────────────
+// In-memory for now — survives process lifetime, sufficient for MVP
+const revokedTokens = new Set<string>();
+
 function isRateLimited(ip: string): { limited: boolean; retryAfterSeconds?: number } {
   const record = loginAttempts.get(ip);
   if (!record) return { limited: false };
@@ -209,6 +213,35 @@ export async function authRoutes(app: FastifyInstance) {
     });
   });
 
+
+  // ── POST /api/auth/logout ───────────────────────────
+  app.post('/logout', async (request, reply) => {
+    const parsed = refreshSchema.safeParse(request.body);
+    if (!parsed.success) {
+      // Still return 200 — client should clear tokens regardless
+      return reply.send({ success: true });
+    }
+
+    const { refreshToken } = parsed.data;
+
+    try {
+      const decoded = app.jwt.verify(refreshToken) as { type?: string };
+      if (decoded.type === 'refresh') {
+        revokedTokens.add(refreshToken);
+        // Clean up expired tokens periodically to prevent memory leak
+        if (revokedTokens.size > 10000) {
+          const first = revokedTokens.values().next().value;
+          if (first) revokedTokens.delete(first);
+        }
+      }
+    } catch {
+      // Token already expired — nothing to revoke
+    }
+
+    return reply.send({ success: true });
+  });
+
+
   // ── POST /api/auth/refresh ──────────────────────────
   app.post('/refresh', async (request, reply) => {
     const parsed = refreshSchema.safeParse(request.body);
@@ -236,6 +269,14 @@ export async function authRoutes(app: FastifyInstance) {
           statusCode: 401,
           error: 'Unauthorized',
           message: 'Invalid refresh token',
+        });
+      }
+
+      if (revokedTokens.has(refreshToken)) {
+        return reply.status(401).send({
+          statusCode: 401,
+          error: 'Unauthorized',
+          message: 'Token has been revoked',
         });
       }
 

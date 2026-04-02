@@ -4,6 +4,8 @@ import cors from '@fastify/cors';
 import jwt from '@fastify/jwt';
 import rateLimit from '@fastify/rate-limit';
 import helmet from '@fastify/helmet';
+import cookie from '@fastify/cookie';
+import '@fastify/cookie';
 import { authRoutes } from './routes/auth.js';
 import { tableRoutes } from './routes/tables.js';
 import { tableSessionRoutes, sessionRoutes } from './routes/sessions.js';
@@ -43,8 +45,13 @@ export async function buildApp() {
 
   // ── Security headers ──────────────────────────────────
   await app.register(helmet, {
-    contentSecurityPolicy: false, // CSP handled at frontend level
+    contentSecurityPolicy: false,
     crossOriginEmbedderPolicy: false,
+  });
+
+  // ── Cookies ───────────────────────────────────────────
+  await app.register(cookie, {
+    secret: process.env.COOKIE_SECRET ?? process.env.JWT_SECRET ?? 'dev-cookie-secret',
   });
 
   // ── CORS ──────────────────────────────────────────────
@@ -57,19 +64,23 @@ export async function buildApp() {
     credentials: true,
   });
 
-  // ── JWT ───────────────────────────────────────────────
+  // ── JWT — reads from cookie automatically ─────────────
   await app.register(jwt, {
     secret: jwtSecret ?? 'dev-secret-change-in-production',
+    cookie: {
+      cookieName: 'accessToken',
+      signed: false,
+    },
   });
 
-  // ── Global rate limit (all endpoints) ─────────────────
+  // ── Global rate limit ─────────────────────────────────
   await app.register(rateLimit, {
     max: 100,
     timeWindow: '1 minute',
     keyGenerator: (request) => request.ip,
   });
 
-  // ── Health check (no sensitive info exposed) ──────────
+  // ── Health check ──────────────────────────────────────
   app.get('/api/health', async () => {
     return {
       status: 'ok',

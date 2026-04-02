@@ -37,7 +37,7 @@ export default function TablesPage() {
   const [error, setError] = useState('');
   const navigate = useNavigate();
 
-const user = JSON.parse(localStorage.getItem('user') || '{}');
+  const user = JSON.parse(localStorage.getItem('user') || '{}');
   const socketRef = useRef<Socket | null>(null);
 
   useEffect(() => {
@@ -45,13 +45,10 @@ const user = JSON.parse(localStorage.getItem('user') || '{}');
   }, []);
 
   // ── WebSocket: subscribe to table status changes ──
-  useEffect(() => {
-    const token = localStorage.getItem('accessToken');
-    if (!token) return;
 
-    // Decode restaurantId from JWT payload
-    const payload = JSON.parse(atob(token.split('.')[1]!));
-    const restaurantId = payload.restaurantId as string;
+  useEffect(() => {
+    const restaurant = JSON.parse(localStorage.getItem('restaurant') || '{}');
+    const restaurantId = restaurant.id as string;
     if (!restaurantId) return;
 
     const socket = io('http://localhost:3001', {
@@ -71,15 +68,9 @@ const user = JSON.parse(localStorage.getItem('user') || '{}');
   }, []);
 
   const fetchTables = async () => {
-    const token = localStorage.getItem('accessToken');
-    if (!token) {
-      navigate('/login');
-      return;
-    }
-
     try {
       const response = await fetch('/api/tables', {
-        headers: { Authorization: `Bearer ${token}` },
+        credentials: 'include',
       });
 
       if (response.status === 401) {

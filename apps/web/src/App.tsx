@@ -8,8 +8,8 @@ import ConfirmationPage from './pages/Confirmation/ConfirmationPage';
 import CleaningPage from './pages/Cleaning/CleaningPage';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
-  const token = localStorage.getItem('accessToken');
-  if (!token) return <Navigate to="/login" replace />;
+  const isLoggedIn = localStorage.getItem('isLoggedIn');
+  if (!isLoggedIn) return <Navigate to="/login" replace />;
   return <>{children}</>;
 }
 

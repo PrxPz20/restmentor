@@ -49,7 +49,6 @@ export default function OrderPage() {
   const [hasModifiedOrders, setHasModifiedOrders] = useState(false);
 
   const user = JSON.parse(localStorage.getItem('user') || '{}');
-  const token = localStorage.getItem('accessToken');
 
   useEffect(() => {
     loadOrders();
@@ -63,11 +62,9 @@ export default function OrderPage() {
   }, [editingItemId]);
 
   const loadOrders = async () => {
-    if (!token) { navigate('/login'); return; }
-
     try {
       const response = await fetch(`/api/sessions/${sessionId}/orders`, {
-        headers: { Authorization: `Bearer ${token}` },
+        credentials: 'include',
       });
 
       if (response.status === 401) { localStorage.clear(); navigate('/login'); return; }
@@ -76,12 +73,12 @@ export default function OrderPage() {
       setOrders(data.orders);
 
       const sessionRes = await fetch(`/api/sessions/${sessionId}`, {
-        headers: { Authorization: `Bearer ${token}` },
+        credentials: 'include',
       });
       if (sessionRes.ok) {
         const sessionData = await sessionRes.json();
         const tablesRes = await fetch('/api/tables', {
-          headers: { Authorization: `Bearer ${token}` },
+          credentials: 'include',
         });
         if (tablesRes.ok) {
           const tablesData = await tablesRes.json();
@@ -96,12 +93,10 @@ export default function OrderPage() {
         const draft = data.orders.find((o: OrderData) => o.status === 'draft');
         if (draft) {
           setCurrentOrderId(draft.id);
-          // Re-enable button if draft already has items (e.g. after page refresh)
           if (draft.items && draft.items.length > 0) setHasPendingChanges(true);
         }
       }
 
-      // Re-enable button if any orders are in modified state
       const hasModified = data.orders.some((o: OrderData) => o.status === 'modified');
       setHasModifiedOrders(hasModified);
 
@@ -113,13 +108,13 @@ export default function OrderPage() {
   };
 
   const createNewOrder = async () => {
-    if (!token) return;
-
     try {
       const response = await fetch(`/api/sessions/${sessionId}/orders`, {
         method: 'POST',
-        headers: { Authorization: `Bearer ${token}` },
+        credentials: 'include',
       });
+
+      if (response.status === 401) { localStorage.clear(); navigate('/login'); return; }
 
       const data = await response.json();
       setCurrentOrderId(data.order.id);
@@ -130,12 +125,13 @@ export default function OrderPage() {
   };
 
   const handleAddItem = async (menuItemId: string) => {
-    if (!token || !currentOrderId || !activeGender) return;
+    if (!currentOrderId || !activeGender) return;
 
     try {
       await fetch(`/api/orders/${currentOrderId}/items`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({ menuItemId, genderTarget: activeGender, quantity: 1 }),
       });
 
@@ -146,14 +142,12 @@ export default function OrderPage() {
     }
   };
 
-  // ── Edit item quantity or remove (quantity = 0) ──────
   const handleEditItem = async (orderId: string, itemId: string, newQuantity: number) => {
-    if (!token) return;
-
     try {
       await fetch(`/api/orders/${orderId}/items/${itemId}`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({ quantity: newQuantity }),
       });
 
@@ -175,9 +169,9 @@ export default function OrderPage() {
   };
 
   const handleProcessOrder = async () => {
-    if (!token || !currentOrderId) return;
+    if (!currentOrderId) return;
 
-    if (allItems.length === 0) {
+    if (allItems.length === 0 && !hasModifiedOrders) {
       setError('Add some items before processing the order');
       return;
     }
@@ -188,7 +182,7 @@ export default function OrderPage() {
     try {
       const response = await fetch(`/api/orders/${currentOrderId}/send`, {
         method: 'POST',
-        headers: { Authorization: `Bearer ${token}` },
+        credentials: 'include',
       });
 
       const data = await response.json();
@@ -217,11 +211,9 @@ export default function OrderPage() {
   };
 
   const handleCleaningRequest = async () => {
-    if (!token) return;
-
     try {
       const sessionRes = await fetch(`/api/sessions/${sessionId}`, {
-        headers: { Authorization: `Bearer ${token}` },
+        credentials: 'include',
       });
 
       if (!sessionRes.ok) return;
@@ -230,7 +222,8 @@ export default function OrderPage() {
 
       await fetch(`/api/tables/${tableId}/status`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({ status: 'cleaning' }),
       });
 
@@ -240,7 +233,6 @@ export default function OrderPage() {
     }
   };
 
-  // ── Flatten all items, tracking which order each belongs to ──
   const allItems = orders.flatMap((o) =>
     (o.items || []).map((item) => ({ ...item, roundNumber: o.round_number, orderId: o.id, orderStatus: o.status }))
   );
@@ -253,10 +245,9 @@ export default function OrderPage() {
     groupedByGender[item.genderTarget]!.push(item);
   });
 
+  const GENDER_ORDER = ['male', 'female', 'kid'];
   const sortedGenderKeys = Object.keys(groupedByGender).sort((a, b) => {
-    if (a === 'kid') return 1;
-    if (b === 'kid') return -1;
-    return 0;
+    return GENDER_ORDER.indexOf(a) - GENDER_ORDER.indexOf(b);
   });
 
   const sortedGroupedByGender: Record<string, typeof genderedItems> = {};
@@ -311,23 +302,16 @@ export default function OrderPage() {
                 key={item.id}
                 onClick={() => setEditingItemId(editingItemId === item.id ? null : item.id)}
                 className="flex flex-col justify-between p-3 overflow-hidden cursor-pointer transition-opacity active:opacity-80"
-                style={{
-                  backgroundColor: 'var(--color-green)',
-                  borderRadius: 'var(--radius-sm)',
-                  height: '110px',
-                }}
+                style={{ backgroundColor: 'var(--color-green)', borderRadius: 'var(--radius-sm)', height: '110px' }}
               >
                 {editingItemId === item.id ? (
-                  // ── Edit controls for shared item ──
                   <div className="flex flex-col items-center justify-center h-full gap-2" onMouseDown={(e) => e.stopPropagation()}>
                     <div className="flex items-center gap-2">
                       <button
                         onClick={(e) => { e.stopPropagation(); handleEditItem(item.orderId, item.id, item.quantity - 1); }}
                         className="flex items-center justify-center border-none cursor-pointer"
                         style={{ width: '26px', height: '26px', borderRadius: '50%', backgroundColor: 'rgba(255,255,255,0.7)', color: 'var(--color-primary)', fontSize: '16px', fontWeight: 'var(--font-bold)', fontFamily: 'var(--font-family)' }}
-                      >
-                        −
-                      </button>
+                      >−</button>
                       <span style={{ color: 'var(--color-primary)', fontSize: 'var(--text-md)', fontWeight: 'var(--font-bold)', minWidth: '20px', textAlign: 'center', fontFamily: 'var(--font-family)' }}>
                         {item.quantity}
                       </span>
@@ -335,20 +319,15 @@ export default function OrderPage() {
                         onClick={(e) => { e.stopPropagation(); handleEditItem(item.orderId, item.id, item.quantity + 1); }}
                         className="flex items-center justify-center border-none cursor-pointer"
                         style={{ width: '26px', height: '26px', borderRadius: '50%', backgroundColor: 'rgba(255,255,255,0.7)', color: 'var(--color-primary)', fontSize: '16px', fontWeight: 'var(--font-bold)', fontFamily: 'var(--font-family)' }}
-                      >
-                        +
-                      </button>
+                      >+</button>
                     </div>
                     <button
                       onClick={(e) => { e.stopPropagation(); handleEditItem(item.orderId, item.id, 0); }}
                       className="border-none cursor-pointer"
                       style={{ fontSize: '11px', fontWeight: 'var(--font-medium)', fontFamily: 'var(--font-family)', color: 'var(--color-primary)', opacity: 0.5, background: 'transparent', padding: 0 }}
-                    >
-                      Remove
-                    </button>
+                    >Remove</button>
                   </div>
                 ) : (
-                  // ── Normal shared item view ──
                   <>
                     <div className="flex flex-col items-center">
                       <span style={{ color: 'var(--color-primary)', fontSize: 'var(--text-md)', fontWeight: 'var(--font-medium)', textAlign: 'center' }}>
@@ -359,19 +338,14 @@ export default function OrderPage() {
                       </span>
                     </div>
                     <div className="flex items-center justify-between">
-                      <span style={{ color: 'var(--color-primary)', fontSize: 'var(--text-sm)', fontWeight: 'var(--font-regular)' }}>
-                        x{item.quantity}
-                      </span>
-                      <span style={{ color: 'var(--color-primary)', fontSize: 'var(--text-sm)', fontWeight: 'var(--font-regular)' }}>
-                        €{Number(item.menuItemPrice).toFixed(2)}
-                      </span>
+                      <span style={{ color: 'var(--color-primary)', fontSize: 'var(--text-sm)', fontWeight: 'var(--font-regular)' }}>x{item.quantity}</span>
+                      <span style={{ color: 'var(--color-primary)', fontSize: 'var(--text-sm)', fontWeight: 'var(--font-regular)' }}>€{Number(item.menuItemPrice).toFixed(2)}</span>
                     </div>
                   </>
                 )}
               </div>
             ))}
 
-            {/* Add shared button */}
             <button
               onClick={handleShareTap}
               className="flex items-center justify-center border-none cursor-pointer transition-opacity hover:opacity-80 active:scale-95"
@@ -394,11 +368,11 @@ export default function OrderPage() {
             <span style={{ color: 'var(--color-primary)', fontSize: 'var(--text-sm)', fontWeight: 'var(--font-light)' }}>Individual Order</span>
           </div>
           <div className="grid grid-cols-3 gap-3">
-            {[
+            {([
               { key: 'male' as GenderTarget, label: 'Male', icon: menIcon },
               { key: 'female' as GenderTarget, label: 'Female', icon: femaleIcon },
               { key: 'kid' as GenderTarget, label: 'Kid', icon: kidIcon },
-            ].map((gender) => (
+            ]).map((gender) => (
               <button
                 key={gender.key}
                 onClick={() => handleGenderTap(gender.key)}
@@ -436,23 +410,18 @@ export default function OrderPage() {
                     {groupIndex > 0 && (
                       <div style={{ height: '1px', backgroundColor: 'var(--color-separator)', marginBottom: '10px', marginTop: '16px' }} />
                     )}
-
                     <div className="mb-3">
                       <span style={{ color: 'var(--color-primary)', fontSize: 'var(--text-xs)', fontWeight: 'var(--font-bold)', letterSpacing: '0.5px' }}>
                         GROUP {groupLetter}
                       </span>
                     </div>
-
                     <div className="flex items-center gap-3 mb-3">
                       <img src={genderIcon} alt={genderLabel} style={{ width: '28px', height: '28px', objectFit: 'contain' }} />
-                      <span style={{ color: 'var(--color-primary)', fontSize: 'var(--text-md)', fontWeight: 'var(--font-semibold)' }}>
-                        {genderLabel}
-                      </span>
+                      <span style={{ color: 'var(--color-primary)', fontSize: 'var(--text-md)', fontWeight: 'var(--font-semibold)' }}>{genderLabel}</span>
                     </div>
 
                     {items.map((item, itemIndex) => (
                       <div key={item.id}>
-                        {/* ── Normal item row ── */}
                         {editingItemId !== item.id ? (
                           <div
                             className="flex items-start justify-between py-2 ml-1 cursor-pointer transition-opacity active:opacity-70"
@@ -479,14 +448,10 @@ export default function OrderPage() {
                             </div>
                           </div>
                         ) : (
-                          // ── Inline edit controls ──
                           <div
                             className="flex items-center justify-between py-2 ml-1"
                             onMouseDown={(e) => e.stopPropagation()}
-                            style={{
-                              borderBottom: itemIndex < items.length - 1 ? '1px solid var(--color-separator)' : 'none',
-                              borderRadius: 'var(--radius-sm)',
-                            }}
+                            style={{ borderBottom: itemIndex < items.length - 1 ? '1px solid var(--color-separator)' : 'none', borderRadius: 'var(--radius-sm)' }}
                           >
                             <span style={{ color: 'var(--color-primary)', fontSize: 'var(--text-sm)', fontWeight: 'var(--font-light)', flex: 1, marginRight: '12px' }}>
                               {item.menuItemName}
@@ -496,9 +461,7 @@ export default function OrderPage() {
                                 onClick={() => handleEditItem(item.orderId, item.id, item.quantity - 1)}
                                 className="flex items-center justify-center border-none cursor-pointer"
                                 style={{ width: '28px', height: '28px', borderRadius: '50%', backgroundColor: 'var(--color-background)', color: 'var(--color-primary)', fontSize: '16px', fontWeight: 'var(--font-bold)', fontFamily: 'var(--font-family)' }}
-                              >
-                                −
-                              </button>
+                              >−</button>
                               <span style={{ color: 'var(--color-primary)', fontSize: 'var(--text-sm)', fontWeight: 'var(--font-bold)', minWidth: '20px', textAlign: 'center', fontFamily: 'var(--font-family)' }}>
                                 {item.quantity}
                               </span>
@@ -506,9 +469,7 @@ export default function OrderPage() {
                                 onClick={() => handleEditItem(item.orderId, item.id, item.quantity + 1)}
                                 className="flex items-center justify-center border-none cursor-pointer"
                                 style={{ width: '28px', height: '28px', borderRadius: '50%', backgroundColor: 'var(--color-background)', color: 'var(--color-primary)', fontSize: '16px', fontWeight: 'var(--font-bold)', fontFamily: 'var(--font-family)' }}
-                              >
-                                +
-                              </button>
+                              >+</button>
                               <button
                                 onClick={() => handleEditItem(item.orderId, item.id, 0)}
                                 className="border-none cursor-pointer flex items-center justify-center"
@@ -544,12 +505,8 @@ export default function OrderPage() {
                         <span style={{ fontSize: '20px' }}>✦</span>
                         {items.filter((i) => i.aiSuggested).map((item) => (
                           <div key={item.id} className="flex flex-col">
-                            <span style={{ color: 'var(--color-primary)', fontSize: 'var(--text-sm)', fontWeight: 'var(--font-semibold)' }}>
-                              {item.menuItemName}
-                            </span>
-                            <span style={{ color: 'var(--color-primary)', fontSize: 'var(--text-sm)', fontWeight: 'var(--font-regular)' }}>
-                              {Number(item.menuItemPrice).toFixed(2)}
-                            </span>
+                            <span style={{ color: 'var(--color-primary)', fontSize: 'var(--text-sm)', fontWeight: 'var(--font-semibold)' }}>{item.menuItemName}</span>
+                            <span style={{ color: 'var(--color-primary)', fontSize: 'var(--text-sm)', fontWeight: 'var(--font-regular)' }}>{Number(item.menuItemPrice).toFixed(2)}</span>
                           </div>
                         ))}
                       </div>

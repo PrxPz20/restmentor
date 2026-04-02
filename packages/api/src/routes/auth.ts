@@ -1,5 +1,7 @@
 // packages/api/src/routes/auth.ts
 import { FastifyInstance } from 'fastify';
+import '@fastify/cookie';
+import '@fastify/jwt';
 import { neon } from '@neondatabase/serverless';
 import { drizzle } from 'drizzle-orm/neon-http';
 import { sql } from 'drizzle-orm';
@@ -10,14 +12,9 @@ import 'dotenv/config';
 const { compare } = bcryptjs;
 
 // ── In-memory brute force tracker ────────────────────────────
-// Tracks failed login attempts per IP. Resets on successful login.
 const loginAttempts = new Map<string, { count: number; lockedUntil: number }>();
 const MAX_ATTEMPTS = 5;
-const LOCKOUT_MS = 15 * 60 * 1000; // 15 minutes
-
-// ── Refresh token blocklist (revoked tokens) ──────────────────
-// In-memory for now — survives process lifetime, sufficient for MVP
-const revokedTokens = new Set<string>();
+const LOCKOUT_MS = 15 * 60 * 1000;
 
 function isRateLimited(ip: string): { limited: boolean; retryAfterSeconds?: number } {
   const record = loginAttempts.get(ip);
@@ -41,24 +38,55 @@ function clearAttempts(ip: string) {
   loginAttempts.delete(ip);
 }
 
-// ── Schemas ──────────────────────────────────────────────────
+// ── Revoked refresh tokens ────────────────────────────────────
+const revokedTokens = new Set<string>();
+
+// ── Cookie config ─────────────────────────────────────────────
+const IS_PROD = process.env.NODE_ENV === 'production';
+
+const ACCESS_COOKIE = {
+  name: 'accessToken',
+  options: {
+    httpOnly: true,
+    secure: IS_PROD,
+    sameSite: 'strict' as const,
+    path: '/',
+    maxAge: 30 * 60, // 30 minutes in seconds
+  },
+};
+
+const REFRESH_COOKIE = {
+  name: 'refreshToken',
+  options: {
+    httpOnly: true,
+    secure: IS_PROD,
+    sameSite: 'strict' as const,
+    path: '/api/auth',
+    maxAge: 24 * 60 * 60, // 24h default in seconds
+  },
+};
+
+const REFRESH_COOKIE_REMEMBER = {
+  ...REFRESH_COOKIE,
+  options: {
+    ...REFRESH_COOKIE.options,
+    maxAge: 30 * 24 * 60 * 60, // 30 days in seconds
+  },
+};
+
+// ── Schemas ───────────────────────────────────────────────────
 const loginSchema = z.object({
   accountNumber: z.string().min(1, 'Account number is required'),
   password: z.string().min(1, 'Password is required'),
   rememberMe: z.boolean().default(false),
 });
 
-const refreshSchema = z.object({
-  refreshToken: z.string().min(1, 'Refresh token is required'),
-});
-
 export async function authRoutes(app: FastifyInstance) {
 
-  // ── POST /api/auth/login ────────────────────────────
+  // ── POST /api/auth/login ─────────────────────────────
   app.post('/login', async (request, reply) => {
     const ip = request.ip;
 
-    // ── Brute force check ──
     const { limited, retryAfterSeconds } = isRateLimited(ip);
     if (limited) {
       reply.header('Retry-After', String(retryAfterSeconds));
@@ -80,7 +108,6 @@ export async function authRoutes(app: FastifyInstance) {
 
     const { accountNumber, password, rememberMe } = parsed.data;
 
-    // ── Parse account number ──
     const slashIndex = accountNumber.indexOf('/');
     if (slashIndex === -1) {
       return reply.status(400).send({
@@ -101,7 +128,6 @@ export async function authRoutes(app: FastifyInstance) {
       });
     }
 
-    // ── Look up restaurant in master DB ──
     const masterUrl = process.env.MASTER_DATABASE_URL;
     if (!masterUrl) {
       app.log.error('MASTER_DATABASE_URL is not set');
@@ -121,7 +147,6 @@ export async function authRoutes(app: FastifyInstance) {
 
     const restaurant = restaurantResult.rows[0];
 
-    // ── Use generic error to prevent restaurant enumeration ──
     if (!restaurant) {
       recordFailedAttempt(ip);
       return reply.status(401).send({
@@ -139,7 +164,6 @@ export async function authRoutes(app: FastifyInstance) {
       });
     }
 
-    // ── Connect to tenant DB ──
     const tenantClient = neon(restaurant.neon_connection_string as string);
     const tenantDb = drizzle(tenantClient);
 
@@ -149,7 +173,6 @@ export async function authRoutes(app: FastifyInstance) {
 
     const user = userResult.rows[0];
 
-    // ── Generic error prevents waiter number enumeration ──
     if (!user) {
       recordFailedAttempt(ip);
       return reply.status(401).send({
@@ -167,7 +190,6 @@ export async function authRoutes(app: FastifyInstance) {
       });
     }
 
-    // ── Verify password ──
     const passwordValid = await compare(password, user.password_hash as string);
     if (!passwordValid) {
       recordFailedAttempt(ip);
@@ -178,7 +200,6 @@ export async function authRoutes(app: FastifyInstance) {
       });
     }
 
-    // ── Success: clear brute force record ──
     clearAttempts(ip);
 
     const tokenPayload = {
@@ -188,17 +209,22 @@ export async function authRoutes(app: FastifyInstance) {
       role: user.role as string,
     };
 
-    // Access token is always short-lived (30m)
-    // rememberMe only affects how long the refresh token lasts
     const accessToken = app.jwt.sign(tokenPayload, { expiresIn: '30m' });
     const refreshToken = app.jwt.sign(
       { ...tokenPayload, type: 'refresh' },
       { expiresIn: rememberMe ? '30d' : '24h' }
     );
 
-    return reply.send({
-      accessToken,
+    // ── Set HttpOnly cookies ──────────────────────────
+    reply.setCookie(ACCESS_COOKIE.name, accessToken, ACCESS_COOKIE.options);
+    reply.setCookie(
+      REFRESH_COOKIE.name,
       refreshToken,
+      rememberMe ? REFRESH_COOKIE_REMEMBER.options : REFRESH_COOKIE.options
+    );
+
+    // ── Return only non-sensitive user info ───────────
+    return reply.send({
       user: {
         id: user.id,
         name: user.name,
@@ -213,47 +239,25 @@ export async function authRoutes(app: FastifyInstance) {
     });
   });
 
-
-  // ── POST /api/auth/logout ───────────────────────────
-  app.post('/logout', async (request, reply) => {
-    const parsed = refreshSchema.safeParse(request.body);
-    if (!parsed.success) {
-      // Still return 200 — client should clear tokens regardless
-      return reply.send({ success: true });
-    }
-
-    const { refreshToken } = parsed.data;
-
-    try {
-      const decoded = app.jwt.verify(refreshToken) as { type?: string };
-      if (decoded.type === 'refresh') {
-        revokedTokens.add(refreshToken);
-        // Clean up expired tokens periodically to prevent memory leak
-        if (revokedTokens.size > 10000) {
-          const first = revokedTokens.values().next().value;
-          if (first) revokedTokens.delete(first);
-        }
-      }
-    } catch {
-      // Token already expired — nothing to revoke
-    }
-
-    return reply.send({ success: true });
-  });
-
-
-  // ── POST /api/auth/refresh ──────────────────────────
+  // ── POST /api/auth/refresh ───────────────────────────
   app.post('/refresh', async (request, reply) => {
-    const parsed = refreshSchema.safeParse(request.body);
-    if (!parsed.success) {
-      return reply.status(400).send({
-        statusCode: 400,
-        error: 'Bad Request',
-        message: parsed.error.errors[0]?.message ?? 'Invalid input',
+    const refreshToken = request.cookies?.refreshToken;
+
+    if (!refreshToken) {
+      return reply.status(401).send({
+        statusCode: 401,
+        error: 'Unauthorized',
+        message: 'No refresh token provided',
       });
     }
 
-    const { refreshToken } = parsed.data;
+    if (revokedTokens.has(refreshToken)) {
+      return reply.status(401).send({
+        statusCode: 401,
+        error: 'Unauthorized',
+        message: 'Token has been revoked',
+      });
+    }
 
     try {
       const decoded = app.jwt.verify(refreshToken) as {
@@ -272,14 +276,6 @@ export async function authRoutes(app: FastifyInstance) {
         });
       }
 
-      if (revokedTokens.has(refreshToken)) {
-        return reply.status(401).send({
-          statusCode: 401,
-          error: 'Unauthorized',
-          message: 'Token has been revoked',
-        });
-      }
-
       const tokenPayload = {
         userId: decoded.userId,
         restaurantId: decoded.restaurantId,
@@ -293,10 +289,13 @@ export async function authRoutes(app: FastifyInstance) {
         { expiresIn: '24h' }
       );
 
-      return reply.send({
-        accessToken: newAccessToken,
-        refreshToken: newRefreshToken,
-      });
+      // Revoke old refresh token
+      revokedTokens.add(refreshToken);
+
+      reply.setCookie(ACCESS_COOKIE.name, newAccessToken, ACCESS_COOKIE.options);
+      reply.setCookie(REFRESH_COOKIE.name, newRefreshToken, REFRESH_COOKIE.options);
+
+      return reply.send({ success: true });
     } catch {
       return reply.status(401).send({
         statusCode: 401,
@@ -304,5 +303,31 @@ export async function authRoutes(app: FastifyInstance) {
         message: 'Invalid or expired refresh token',
       });
     }
+  });
+
+  // ── POST /api/auth/logout ────────────────────────────
+  app.post('/logout', async (request, reply) => {
+    const refreshToken = request.cookies?.refreshToken;
+
+    if (refreshToken) {
+      try {
+        const decoded = app.jwt.verify(refreshToken) as { type?: string };
+        if (decoded.type === 'refresh') {
+          revokedTokens.add(refreshToken);
+          if (revokedTokens.size > 10000) {
+            const first = revokedTokens.values().next().value;
+            if (first) revokedTokens.delete(first);
+          }
+        }
+      } catch {
+        // Already expired — nothing to revoke
+      }
+    }
+
+    // Clear both cookies
+    reply.clearCookie(ACCESS_COOKIE.name, { path: '/' });
+    reply.clearCookie(REFRESH_COOKIE.name, { path: '/api/auth' });
+
+    return reply.send({ success: true });
   });
 }

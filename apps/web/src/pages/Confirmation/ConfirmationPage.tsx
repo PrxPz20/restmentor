@@ -1,3 +1,4 @@
+// restmentor/apps/web/src/pages/Confirmation/ConfirmationPage.tsx
 import { useLocation, useNavigate } from 'react-router-dom';
 import Header from '../../components/Header';
 import chefImg from '../../assets/chef.png';

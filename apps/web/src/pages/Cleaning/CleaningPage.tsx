@@ -1,3 +1,4 @@
+// restmentor/apps/web/src/pages/Cleaning/CleaningPage.tsx
 import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import Header from '../../components/Header';
@@ -9,16 +10,16 @@ export default function CleaningPage() {
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
   const user = JSON.parse(localStorage.getItem('user') || '{}');
-  const token = localStorage.getItem('accessToken');
 
   const handleCleaningCompleted = async () => {
-    if (!token || !tableId) return;
+    if (!tableId) return;
     setIsLoading(true);
 
     try {
       await fetch(`/api/tables/${tableId}/status`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({ status: 'open' }),
       });
 

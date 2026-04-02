@@ -1,3 +1,4 @@
+// restmentor/apps/web/src/pages/TableConfig/TableConfigPage.tsx
 import { useState } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import Header from '../../components/Header';
@@ -46,19 +47,11 @@ export default function TableConfigPage() {
     setIsLoading(true);
     setError('');
 
-    const token = localStorage.getItem('accessToken');
-    if (!token) {
-      navigate('/login');
-      return;
-    }
-
     try {
       const response = await fetch(`/api/tables/${tableId}/sessions`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({
           guestMales: counts.males,
           guestFemales: counts.females,

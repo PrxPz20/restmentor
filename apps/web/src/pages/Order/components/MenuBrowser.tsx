@@ -42,18 +42,14 @@ export default function MenuBrowser({ activeGender, onSelectItem, onClose, onSwi
   const [isLoading, setIsLoading] = useState(true);
   const navigate = useNavigate();
 
-  const token = localStorage.getItem('accessToken');
-
   useEffect(() => {
     loadMenu();
   }, []);
 
   const loadMenu = async () => {
-    if (!token) { navigate('/login'); return; }
-
     try {
       const response = await fetch('/api/menu', {
-        headers: { Authorization: `Bearer ${token}` },
+        credentials: 'include',
       });
 
       if (response.status === 401) { localStorage.clear(); navigate('/login'); return; }

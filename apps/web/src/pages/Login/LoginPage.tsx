@@ -33,6 +33,7 @@ export default function LoginPage() {
       const response = await fetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({ accountNumber, password, rememberMe }),
       });
 
@@ -44,10 +45,10 @@ export default function LoginPage() {
         return;
       }
 
-      localStorage.setItem('accessToken', data.accessToken);
-      localStorage.setItem('refreshToken', data.refreshToken);
+      // Only store non-sensitive display info — tokens are in HttpOnly cookies
       localStorage.setItem('user', JSON.stringify(data.user));
       localStorage.setItem('restaurant', JSON.stringify(data.restaurant));
+      localStorage.setItem('isLoggedIn', 'true');
 
       navigate('/tables');
     } catch {
@@ -72,27 +73,16 @@ export default function LoginPage() {
         <div className="w-full p-6" style={{ backgroundColor: 'var(--color-green)', borderRadius: 'var(--radius-lg)', boxShadow: 'var(--shadow-card)' }}>
           <form onSubmit={handleLogin} className="flex flex-col gap-3">
 
-            {/* Account Number */}
             <input
               type="text"
               placeholder="Account Number"
               value={accountNumber}
               onChange={(e) => setAccountNumber(e.target.value)}
               className="w-full h-[50px] px-[18px] outline-none transition-shadow duration-200"
-              style={{
-                backgroundColor: 'var(--color-white)',
-                border: 'none',
-                color: 'var(--color-primary)',
-                fontFamily: 'var(--font-family)',
-                fontSize: 'var(--text-sm)',
-                fontWeight: 'var(--font-light)',
-                boxShadow: 'var(--shadow-input)',
-                borderRadius: 'var(--radius-sm)',
-              }}
+              style={{ backgroundColor: 'var(--color-white)', border: 'none', color: 'var(--color-primary)', fontFamily: 'var(--font-family)', fontSize: 'var(--text-sm)', fontWeight: 'var(--font-light)', boxShadow: 'var(--shadow-input)', borderRadius: 'var(--radius-sm)' }}
               autoComplete="username"
             />
 
-            {/* Password */}
             <div className="relative w-full">
               <input
                 type={showPassword ? 'text' : 'password'}
@@ -100,16 +90,7 @@ export default function LoginPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 className="w-full h-[50px] px-[18px] pr-12 outline-none transition-shadow duration-200"
-                style={{
-                  backgroundColor: 'var(--color-white)',
-                  border: 'none',
-                  color: 'var(--color-primary)',
-                  fontFamily: 'var(--font-family)',
-                  fontSize: 'var(--text-sm)',
-                  fontWeight: 'var(--font-light)',
-                  boxShadow: 'var(--shadow-input)',
-                  borderRadius: 'var(--radius-sm)',
-                }}
+                style={{ backgroundColor: 'var(--color-white)', border: 'none', color: 'var(--color-primary)', fontFamily: 'var(--font-family)', fontSize: 'var(--text-sm)', fontWeight: 'var(--font-light)', boxShadow: 'var(--shadow-input)', borderRadius: 'var(--radius-sm)' }}
                 autoComplete="current-password"
               />
               <button
@@ -133,7 +114,6 @@ export default function LoginPage() {
               </button>
             </div>
 
-            {/* Error Message */}
             {error && (
               <div className="flex items-center gap-1.5 px-1 text-[13px]" style={{ color: 'var(--color-error)', fontFamily: 'var(--font-family)', fontWeight: 'var(--font-medium)' }}>
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--color-error)" strokeWidth="2" className="shrink-0">
@@ -145,17 +125,11 @@ export default function LoginPage() {
               </div>
             )}
 
-            {/* Remember Me + Forgot Password */}
             <div className="flex items-center justify-between px-1 py-0.5">
               <label className="flex items-center cursor-pointer select-none" onClick={() => setRememberMe(!rememberMe)}>
                 <div
                   className="w-[22px] h-[22px] flex items-center justify-center shrink-0 transition-all duration-200"
-                  style={{
-                    backgroundColor: rememberMe ? 'var(--color-primary)' : 'var(--color-white)',
-                    border: 'none',
-                    borderRadius: 'var(--radius-sm)',
-                    boxShadow: 'var(--shadow-input)',
-                  }}
+                  style={{ backgroundColor: rememberMe ? 'var(--color-primary)' : 'var(--color-white)', border: 'none', borderRadius: 'var(--radius-sm)', boxShadow: 'var(--shadow-input)' }}
                 >
                   {rememberMe && (
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
@@ -176,20 +150,11 @@ export default function LoginPage() {
               </button>
             </div>
 
-            {/* Login Button */}
             <button
               type="submit"
               disabled={isLoading}
               className="w-full h-[52px] text-base cursor-pointer flex items-center justify-center mt-1 transition-opacity duration-200 hover:opacity-90 disabled:opacity-80 disabled:cursor-not-allowed border-none"
-              style={{
-                backgroundColor: 'var(--color-primary)',
-                color: 'var(--color-white)',
-                boxShadow: 'var(--shadow-button)',
-                fontFamily: 'var(--font-family)',
-                fontWeight: 'var(--font-semibold)',
-                letterSpacing: '0.3px',
-                borderRadius: 'var(--radius-md)',
-              }}
+              style={{ backgroundColor: 'var(--color-primary)', color: 'var(--color-white)', boxShadow: 'var(--shadow-button)', fontFamily: 'var(--font-family)', fontWeight: 'var(--font-semibold)', letterSpacing: '0.3px', borderRadius: 'var(--radius-md)' }}
             >
               {isLoading ? (
                 <div className="w-[22px] h-[22px] border-[2.5px] border-white/30 border-t-white rounded-full animate-spin" />
@@ -200,7 +165,6 @@ export default function LoginPage() {
           </form>
         </div>
 
-        {/* Create Account */}
         <button
           className="mt-5 py-2 px-4 bg-transparent border-none cursor-pointer hover:opacity-70 transition-opacity"
           style={{ color: 'var(--color-primary)', fontFamily: 'var(--font-family)', fontSize: '15px', fontWeight: 'var(--font-medium)' }}

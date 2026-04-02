@@ -19,15 +19,11 @@ export default function Header({ userName = 'User' }: HeaderProps) {
   const navigate = useNavigate();
 
   const handleLogout = async () => {
-    const refreshToken = localStorage.getItem('refreshToken');
     try {
-      if (refreshToken) {
-        await fetch('/api/auth/logout', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ refreshToken }),
-        });
-      }
+      await fetch('/api/auth/logout', {
+        method: 'POST',
+        credentials: 'include',
+      });
     } catch {
       // Ignore network errors — always clear local state
     } finally {

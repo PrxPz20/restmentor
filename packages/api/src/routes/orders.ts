@@ -4,6 +4,8 @@ import type { Server as SocketIOServer } from 'socket.io';
 import { neon } from '@neondatabase/serverless';
 import { drizzle } from 'drizzle-orm/neon-http';
 import { sql } from 'drizzle-orm';
+import '@fastify/cookie';
+import '@fastify/jwt';
 import { z } from 'zod';
 import 'dotenv/config';
 
@@ -31,7 +33,11 @@ async function getTenantDbFromToken(app: FastifyInstance, request: any) {
   const masterUrl = process.env.MASTER_DATABASE_URL;
   if (!masterUrl) throw new Error('MASTER_DATABASE_URL not set');
 
-  const decoded = await request.jwtVerify() as {
+  // Read token from HttpOnly cookie explicitly
+  const token = request.cookies?.accessToken;
+  if (!token) throw Object.assign(new Error('Missing token'), { code: 'FST_JWT_NO_AUTHORIZATION_IN_HEADER' });
+
+  const decoded = app.jwt.verify(token) as {
     userId: string;
     restaurantId: string;
     restaurantSlug: string;

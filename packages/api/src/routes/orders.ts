@@ -341,18 +341,54 @@ export async function orderRoutes(app: FastifyInstance) {
       const sessionId = order.session_id as string;
       const pendingMods = sessionModifications.get(sessionId) || [];
 
+      // ── If in-memory map is empty, check DB for modified orders ──
+      // (handles server restart case where in-memory map was cleared)
+      if (pendingMods.length === 0) {
+        const dbModified = await db.execute(sql`
+          SELECT COUNT(*) as count FROM orders
+          WHERE session_id = ${sessionId} AND status = 'modified'
+        `);
+        const dbModCount = Number(dbModified.rows[0]!.count);
+        if (dbModCount > 0) {
+          app.log.info(`In-memory map empty but found ${dbModCount} modified orders in DB for session ${sessionId} — rebuilding from DB`);
+          const rebuiltMods = await db.execute(sql`
+            SELECT oi.id as item_id, mi.name as item_name, mi.destination,
+              oi.quantity, o.round_number
+            FROM orders o
+            JOIN order_items oi ON oi.order_id = o.id
+            JOIN menu_items mi ON mi.id = oi.menu_item_id
+            WHERE o.session_id = ${sessionId} AND o.status = 'modified'
+          `);
+          for (const row of rebuiltMods.rows) {
+            const existing = sessionModifications.get(sessionId) || [];
+            existing.push({
+              itemId: row.item_id as string,
+              itemName: row.item_name as string,
+              destination: row.destination as string,
+              newQuantity: row.quantity as number,
+              action: (row.quantity as number) === 0 ? 'removed' : 'quantity_updated',
+              roundNumber: row.round_number as number,
+            });
+            sessionModifications.set(sessionId, existing);
+          }
+        }
+      }
+
+      // ── Refresh pendingMods after potential DB rebuild ──
+      const freshPendingMods = sessionModifications.get(sessionId) || [];
+
       // ── If draft is empty and no pending modifications → nothing to do ──
-      if (itemCount === 0 && pendingMods.length === 0) {
+      if (itemCount === 0 && freshPendingMods.length === 0) {
         return reply.status(400).send({ statusCode: 400, error: 'Bad Request', message: 'Cannot send an empty order' });
       }
 
       // ── Helper: emit pending modifications ──────────────────────────────
       const emitPendingModifications = () => {
-        if (pendingMods.length === 0) return;
+        if (freshPendingMods.length === 0) return;
 
         // Group by round so each card gets a precise targeted update
-        const byRound = new Map<number, typeof pendingMods>();
-        for (const mod of pendingMods) {
+        const byRound = new Map<number, typeof freshPendingMods>();
+        for (const mod of freshPendingMods) {
           if (!byRound.has(mod.roundNumber)) byRound.set(mod.roundNumber, []);
           byRound.get(mod.roundNumber)!.push(mod);
         }

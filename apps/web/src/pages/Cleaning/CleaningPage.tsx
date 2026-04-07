@@ -78,7 +78,19 @@ export default function CleaningPage() {
           </button>
 
           <button
-            onClick={() => navigate(-1)}
+            onClick={async () => {
+              try {
+                await fetch(`/api/tables/${tableId}/status`, {
+                  method: 'PATCH',
+                  headers: { 'Content-Type': 'application/json' },
+                  credentials: 'include',
+                  body: JSON.stringify({ status: 'occupied' }),
+                });
+              } catch {
+                // revert failed silently — navigate back anyway
+              }
+              navigate(-1);
+            }}
             className="w-full h-[52px] text-base cursor-pointer flex items-center justify-center transition-opacity duration-200 hover:opacity-90 border-none mb-[36px]"
             style={{
               backgroundColor: 'var(--color-primary)',
@@ -92,6 +104,7 @@ export default function CleaningPage() {
           >
             Back
           </button>
+
         </div>
       </div>
     </div>

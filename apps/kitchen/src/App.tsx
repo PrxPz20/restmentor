@@ -370,14 +370,16 @@ export default function KitchenDisplay() {
           if (!mod) return { ...item, status: 'normal' as ItemStatus };
 
           if (mod.action === 'removed') {
-            return { ...item, status: 'removed' as ItemStatus, quantity: item.quantity };
-          } else {
+            return { ...item, status: 'removed' as ItemStatus };
+          } else if (mod.newQuantity !== item.quantity) {
             return {
               ...item,
               status: 'updated' as ItemStatus,
               previousQuantity: item.quantity,
               quantity: mod.newQuantity,
             };
+          } else {
+            return { ...item, status: 'normal' as ItemStatus };
           }
         });
 

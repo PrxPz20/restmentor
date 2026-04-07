@@ -338,13 +338,15 @@ export default function BarDisplay() {
 
           if (mod.action === 'removed') {
             return { ...item, status: 'removed' as ItemStatus };
-          } else {
+          } else if (mod.newQuantity !== item.quantity) {
             return {
               ...item,
               status: 'updated' as ItemStatus,
               previousQuantity: item.quantity,
               quantity: mod.newQuantity,
             };
+          } else {
+            return { ...item, status: 'normal' as ItemStatus };
           }
         });
 

@@ -1,0 +1,9 @@
+[build]
+builder = "nixpacks"
+buildCommand = "cd ../.. && pnpm install && pnpm --filter @restmentor/api build"
+
+[deploy]
+startCommand = "node dist/server.js"
+healthcheckPath = "/api/health"
+healthcheckTimeout = 30
+restartPolicyType = "on_failure"

@@ -1,3 +1,4 @@
+import { API_BASE } from '../../config';
 // restmentor/apps/web/src/pages/TableConfig/TableConfigPage.tsx
 import { useState } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
@@ -48,7 +49,7 @@ export default function TableConfigPage() {
     setError('');
 
     try {
-      const response = await fetch(`/api/tables/${tableId}/sessions`, {
+      const response = await fetch(`${API_BASE}/api/tables/${tableId}/sessions`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',

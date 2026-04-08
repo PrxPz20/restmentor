@@ -1,3 +1,4 @@
+import { API_BASE } from '../../config';
 // restmentor/apps/web/src/pages/Order/OrderPage.tsx
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
@@ -63,7 +64,7 @@ export default function OrderPage() {
 
   const loadOrders = async () => {
     try {
-      const response = await fetch(`/api/sessions/${sessionId}/orders`, {
+      const response = await fetch(`${API_BASE}/api/sessions/${sessionId}/orders`, {
         credentials: 'include',
       });
 
@@ -72,12 +73,12 @@ export default function OrderPage() {
       const data = await response.json();
       setOrders(data.orders);
 
-      const sessionRes = await fetch(`/api/sessions/${sessionId}`, {
+      const sessionRes = await fetch(`${API_BASE}/api/sessions/${sessionId}`, {
         credentials: 'include',
       });
       if (sessionRes.ok) {
         const sessionData = await sessionRes.json();
-        const tablesRes = await fetch('/api/tables', {
+        const tablesRes = await fetch(`${API_BASE}/api/tables`, {
           credentials: 'include',
         });
         if (tablesRes.ok) {
@@ -109,7 +110,7 @@ export default function OrderPage() {
 
   const createNewOrder = async () => {
     try {
-      const response = await fetch(`/api/sessions/${sessionId}/orders`, {
+      const response = await fetch(`${API_BASE}/api/sessions/${sessionId}/orders`, {
         method: 'POST',
         credentials: 'include',
       });
@@ -128,7 +129,7 @@ export default function OrderPage() {
     if (!currentOrderId || !activeGender) return;
 
     try {
-      await fetch(`/api/orders/${currentOrderId}/items`, {
+      await fetch(`${API_BASE}/api/orders/${currentOrderId}/items`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -144,7 +145,7 @@ export default function OrderPage() {
 
   const handleEditItem = async (orderId: string, itemId: string, newQuantity: number) => {
     try {
-      await fetch(`/api/orders/${orderId}/items/${itemId}`, {
+      await fetch(`${API_BASE}/api/orders/${orderId}/items/${itemId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -180,7 +181,7 @@ export default function OrderPage() {
     setError('');
 
     try {
-      const response = await fetch(`/api/orders/${currentOrderId}/send`, {
+      const response = await fetch(`${API_BASE}/api/orders/${currentOrderId}/send`, {
         method: 'POST',
         credentials: 'include',
       });
@@ -212,7 +213,7 @@ export default function OrderPage() {
 
   const handleCleaningRequest = async () => {
     try {
-      const sessionRes = await fetch(`/api/sessions/${sessionId}`, {
+      const sessionRes = await fetch(`${API_BASE}/api/sessions/${sessionId}`, {
         credentials: 'include',
       });
 
@@ -220,7 +221,7 @@ export default function OrderPage() {
       const sessionData = await sessionRes.json();
       const tableId = sessionData.session.table_id;
 
-      await fetch(`/api/tables/${tableId}/status`, {
+      await fetch(`${API_BASE}/api/tables/${tableId}/status`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',

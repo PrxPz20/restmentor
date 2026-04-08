@@ -1,3 +1,4 @@
+import { API_BASE } from '../config';
 // apps/web/src/components/Header.tsx
 import { useNavigate } from 'react-router-dom';
 import logo from '../assets/logo.svg';
@@ -20,7 +21,7 @@ export default function Header({ userName = 'User' }: HeaderProps) {
 
   const handleLogout = async () => {
     try {
-      await fetch('/api/auth/logout', {
+      await fetch(`${API_BASE}/api/auth/logout`, {
         method: 'POST',
         credentials: 'include',
       });

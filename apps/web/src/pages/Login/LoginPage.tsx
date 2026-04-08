@@ -1,4 +1,5 @@
 // apps/web/src/pages/Login/LoginPage.tsx
+import { API_BASE } from '../../config';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import logo from '../../assets/logo.svg';
@@ -30,7 +31,7 @@ export default function LoginPage() {
     setIsLoading(true);
 
     try {
-      const response = await fetch('/api/auth/login', {
+      const response = await fetch(`${API_BASE}/api/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',

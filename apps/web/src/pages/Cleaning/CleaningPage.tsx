@@ -1,3 +1,4 @@
+import { API_BASE } from '../../config';
 // restmentor/apps/web/src/pages/Cleaning/CleaningPage.tsx
 import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
@@ -16,7 +17,7 @@ export default function CleaningPage() {
     setIsLoading(true);
 
     try {
-      await fetch(`/api/tables/${tableId}/status`, {
+      await fetch(`${API_BASE}/api/tables/${tableId}/status`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -80,7 +81,7 @@ export default function CleaningPage() {
           <button
             onClick={async () => {
               try {
-                await fetch(`/api/tables/${tableId}/status`, {
+                await fetch(`${API_BASE}/api/tables/${tableId}/status`, {
                   method: 'PATCH',
                   headers: { 'Content-Type': 'application/json' },
                   credentials: 'include',

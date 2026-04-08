@@ -1,3 +1,4 @@
+import { API_BASE } from '../../config';
 // restmentor/apps/web/src/pages/Tables/TablesPage.tsx
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -51,7 +52,7 @@ export default function TablesPage() {
     const restaurantId = restaurant.id as string;
     if (!restaurantId) return;
 
-    const socket = io('http://localhost:3001', {
+    const socket = io(API_BASE || "http://localhost:3001", {
       query: { restaurantId },
       transports: ['websocket'],
     });
@@ -69,7 +70,7 @@ export default function TablesPage() {
 
   const fetchTables = async () => {
     try {
-      const response = await fetch('/api/tables', {
+      const response = await fetch(`${API_BASE}/api/tables`, {
         credentials: 'include',
       });
 

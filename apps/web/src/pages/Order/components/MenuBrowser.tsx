@@ -1,3 +1,4 @@
+import { API_BASE } from '../../../config';
 // restmentor/apps/web/src/pages/Order/components/MenuBrowser.tsx
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -48,7 +49,7 @@ export default function MenuBrowser({ activeGender, onSelectItem, onClose, onSwi
 
   const loadMenu = async () => {
     try {
-      const response = await fetch('/api/menu', {
+      const response = await fetch(`${API_BASE}/api/menu`, {
         credentials: 'include',
       });
 

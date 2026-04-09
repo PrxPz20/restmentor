@@ -10,6 +10,7 @@ import { authRoutes } from './routes/auth.js';
 import { tableRoutes } from './routes/tables.js';
 import { tableSessionRoutes, sessionRoutes } from './routes/sessions.js';
 import { orderRoutes } from './routes/orders.js';
+import { suggestionRoutes } from './routes/suggestions.js';
 import 'dotenv/config';
 import type { Server as SocketIOServer } from 'socket.io';
 
@@ -93,6 +94,6 @@ export async function buildApp() {
   await app.register(tableSessionRoutes, { prefix: '/api/tables' });
   await app.register(sessionRoutes, { prefix: '/api/sessions' });
   await app.register(orderRoutes, { prefix: '/api' });
-
+  await app.register(suggestionRoutes, { prefix: '/api/sessions' });
   return app;
 }

@@ -25,7 +25,7 @@ interface MenuCategoryData {
 
 interface MenuBrowserProps {
   activeGender: GenderTarget;
-  onSelectItem: (menuItemId: string) => void;
+  onSelectItem: (menuItemId: string, menuItemName: string) => void;
   onClose: () => void;
   onSwitchGender: (gender: GenderTarget) => void;
   addedItemIds: string[];
@@ -63,8 +63,8 @@ export default function MenuBrowser({ activeGender, onSelectItem, onClose, onSwi
     }
   };
 
-  const handleItemTap = (itemId: string) => {
-    onSelectItem(itemId);
+const handleItemTap = (itemId: string, itemName: string) => {
+    onSelectItem(itemId, itemName);
   };
 
   const toggleCategory = (catId: string) => {
@@ -186,7 +186,7 @@ export default function MenuBrowser({ activeGender, onSelectItem, onClose, onSwi
                     {category.items.map((item, index) => (
                       <button
                         key={item.id}
-                        onClick={() => handleItemTap(item.id)}
+                        onClick={() => handleItemTap(item.id, item.name)}
                         className="w-full flex items-start justify-between py-4 border-none cursor-pointer text-left transition-all active:scale-[0.98]"
                         style={{
                           fontFamily: 'var(--font-family)',

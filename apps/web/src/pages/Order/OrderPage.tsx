@@ -1,5 +1,5 @@
-import { API_BASE } from '../../config';
 // restmentor/apps/web/src/pages/Order/OrderPage.tsx
+import { API_BASE } from '../../config';
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import Header from '../../components/Header';
@@ -7,6 +7,7 @@ import MenuBrowser from './components/MenuBrowser';
 import menIcon from '../../assets/men.png';
 import femaleIcon from '../../assets/female.png';
 import kidIcon from '../../assets/kid.png';
+import aiSuggestionIcon from '../../assets/ai_suggestion_icon.png';
 
 interface OrderItemData {
   id: string;
@@ -48,6 +49,8 @@ export default function OrderPage() {
   const [editingItemId, setEditingItemId] = useState<string | null>(null);
   const [hasPendingChanges, setHasPendingChanges] = useState(false);
   const [hasModifiedOrders, setHasModifiedOrders] = useState(false);
+  const [suggestions, setSuggestions] = useState<any[]>([]);
+  const [isFetchingSuggestions, setIsFetchingSuggestions] = useState(false);
 
   const user = JSON.parse(localStorage.getItem('user') || '{}');
 
@@ -125,7 +128,7 @@ export default function OrderPage() {
     }
   };
 
-  const handleAddItem = async (menuItemId: string) => {
+  const handleAddItem = async (menuItemId: string, menuItemName?: string) => {
     if (!currentOrderId || !activeGender) return;
 
     try {
@@ -138,6 +141,11 @@ export default function OrderPage() {
 
       setHasPendingChanges(true);
       await loadOrders();
+
+      // Trigger AI suggestions after item is added
+      if (menuItemName) {
+        fetchSuggestions({ name: menuItemName, genderTarget: activeGender });
+      }
     } catch {
       setError('Failed to add item');
     }
@@ -234,6 +242,27 @@ export default function OrderPage() {
     }
   };
 
+  const fetchSuggestions = async (lastAddedItem: { name: string; genderTarget: string }) => {
+    if (!sessionId) return;
+    setIsFetchingSuggestions(true);
+    try {
+      const response = await fetch(`${API_BASE}/api/sessions/${sessionId}/suggestions`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ lastAddedItem }),
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setSuggestions(data.suggestions ?? []);
+      }
+    } catch {
+      // fail silently — suggestions are a bonus
+    } finally {
+      setIsFetchingSuggestions(false);
+    }
+  };
+
   const allItems = orders.flatMap((o) =>
     (o.items || []).map((item) => ({ ...item, roundNumber: o.round_number, orderId: o.id, orderStatus: o.status }))
   );
@@ -267,7 +296,7 @@ export default function OrderPage() {
   const menuOverlay = menuOpen && activeGender ? (
     <MenuBrowser
       activeGender={activeGender}
-      onSelectItem={handleAddItem}
+      onSelectItem={(id, name) => handleAddItem(id, name)}
       onClose={() => { setMenuOpen(false); setActiveGender(null); }}
       onSwitchGender={(g) => setActiveGender(g)}
       addedItemIds={allItems.map(i => i.menuItemId)}
@@ -360,7 +389,26 @@ export default function OrderPage() {
               </div>
             </button>
           </div>
+          {(() => {
+            const sharedSuggestions = suggestions.filter(s => s.target === 'shared');
+            if (sharedSuggestions.length === 0) return null;
+            return (
+              <div className="flex items-center gap-3 mt-3 p-4" style={{ backgroundColor: 'var(--color-green)', borderRadius: 'var(--radius-sm)' }}>
+                <img src={aiSuggestionIcon} alt="AI" style={{ width: '36px', height: '36px', objectFit: 'contain', flexShrink: 0 }} />
+                <div className="flex gap-4 flex-wrap">
+                  {sharedSuggestions.slice(0, 2).map((s) => (
+                    <div key={s.itemId} className="flex flex-col">
+                      <span style={{ color: 'var(--color-primary)', fontSize: '12px', fontWeight: 'var(--font-regular)' }}>{s.itemName}</span>
+                      <span style={{ color: 'var(--color-primary)', fontSize: '12px', fontWeight: 'var(--font-light)' }}>€{Number(s.price).toFixed(2)}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            );
+          })()}
         </div>
+
+        {/* NEW ORDER */}
 
         {/* NEW ORDER */}
         <div className="mb-4">
@@ -501,17 +549,26 @@ export default function OrderPage() {
                       </div>
                     ))}
 
-                    {items.some((i) => i.aiSuggested) && (
-                      <div className="flex items-center gap-3 mt-4 p-4" style={{ backgroundColor: 'var(--color-green)', borderRadius: 'var(--radius-sm)' }}>
-                        <span style={{ fontSize: '20px' }}>✦</span>
-                        {items.filter((i) => i.aiSuggested).map((item) => (
-                          <div key={item.id} className="flex flex-col">
-                            <span style={{ color: 'var(--color-primary)', fontSize: 'var(--text-sm)', fontWeight: 'var(--font-semibold)' }}>{item.menuItemName}</span>
-                            <span style={{ color: 'var(--color-primary)', fontSize: 'var(--text-sm)', fontWeight: 'var(--font-regular)' }}>{Number(item.menuItemPrice).toFixed(2)}</span>
+                    {(() => {
+                      const groupSuggestions = suggestions.filter(s => s.target === gender || s.target === 'shared');
+                      if (groupSuggestions.length === 0) return null;
+                      return (
+                        <div className="flex items-center gap-3 mt-4 p-4" style={{ backgroundColor: 'var(--color-green)', borderRadius: 'var(--radius-sm)' }}>
+                          <img src={aiSuggestionIcon} alt="AI" style={{ width: '36px', height: '36px', objectFit: 'contain', flexShrink: 0 }} />
+                          <div className="flex gap-4 flex-wrap">
+                            {groupSuggestions.slice(0, 2).map((s) => (
+                              <div key={s.itemId} className="flex flex-col">
+                                <span style={{ color: 'var(--color-primary)', fontSize: '12px', fontWeight: 'var(--font-regular)' }}>{s.itemName}</span>
+                                <span style={{ color: 'var(--color-primary)', fontSize: '12px', fontWeight: 'var(--font-light)' }}>€{Number(s.price).toFixed(2)}</span>
+                              </div>
+                            ))}
                           </div>
-                        ))}
-                      </div>
-                    )}
+                          {isFetchingSuggestions && (
+                            <div className="ml-auto w-[16px] h-[16px] border-[2px] rounded-full animate-spin" style={{ borderColor: 'rgba(3,40,19,0.2)', borderTopColor: 'var(--color-primary)' }} />
+                          )}
+                        </div>
+                      );
+                    })()}
                   </div>
                 );
               })}

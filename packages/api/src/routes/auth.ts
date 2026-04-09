@@ -43,26 +43,24 @@ const revokedTokens = new Set<string>();
 
 // ── Cookie config ─────────────────────────────────────────────
 const IS_PROD = process.env.NODE_ENV === 'production';
-
 const ACCESS_COOKIE = {
   name: 'accessToken',
   options: {
     httpOnly: true,
     secure: IS_PROD,
-    sameSite: 'strict' as const,
+    sameSite: (IS_PROD ? 'none' : 'strict') as 'none' | 'strict',
     path: '/',
-    maxAge: 30 * 60, // 30 minutes in seconds
+    maxAge: 30 * 60,
   },
 };
-
 const REFRESH_COOKIE = {
   name: 'refreshToken',
   options: {
     httpOnly: true,
     secure: IS_PROD,
-    sameSite: 'strict' as const,
+    sameSite: (IS_PROD ? 'none' : 'strict') as 'none' | 'strict',
     path: '/api/auth',
-    maxAge: 24 * 60 * 60, // 24h default in seconds
+    maxAge: 24 * 60 * 60,
   },
 };
 

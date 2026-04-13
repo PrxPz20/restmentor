@@ -49,8 +49,8 @@ export default function OrderPage() {
   const [editingItemId, setEditingItemId] = useState<string | null>(null);
   const [hasPendingChanges, setHasPendingChanges] = useState(false);
   const [hasModifiedOrders, setHasModifiedOrders] = useState(false);
-  const [suggestions, setSuggestions] = useState<any[]>([]);
-  const [isFetchingSuggestions, setIsFetchingSuggestions] = useState(false);
+  const [suggestionsByGender, setSuggestionsByGender] = useState<Record<string, any[]>>({});
+  const [loadingGender, setLoadingGender] = useState<string | null>(null);
 
   const user = JSON.parse(localStorage.getItem('user') || '{}');
 
@@ -143,8 +143,8 @@ export default function OrderPage() {
       await loadOrders();
 
       // Trigger AI suggestions after item is added
-      if (menuItemName) {
-        fetchSuggestions({ name: menuItemName, genderTarget: activeGender });
+      if (menuItemName && activeGender !== 'shared') {
+        fetchSuggestions(activeGender, menuItemName);
       }
     } catch {
       setError('Failed to add item');
@@ -242,24 +242,27 @@ export default function OrderPage() {
     }
   };
 
-  const fetchSuggestions = async (lastAddedItem: { name: string; genderTarget: string }) => {
-    if (!sessionId) return;
-    setIsFetchingSuggestions(true);
+  const fetchSuggestions = async (genderTarget: string, lastAddedItemName: string) => {
+    if (!sessionId || genderTarget === 'shared') return;
+    setLoadingGender(genderTarget);
     try {
       const response = await fetch(`${API_BASE}/api/sessions/${sessionId}/suggestions`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify({ lastAddedItem }),
+        body: JSON.stringify({ genderTarget, lastAddedItemName }),
       });
       if (response.ok) {
         const data = await response.json();
-        setSuggestions(data.suggestions ?? []);
+        setSuggestionsByGender(prev => ({
+          ...prev,
+          [genderTarget]: data.suggestions ?? [],
+        }));
       }
     } catch {
       // fail silently — suggestions are a bonus
     } finally {
-      setIsFetchingSuggestions(false);
+      setLoadingGender(null);
     }
   };
 
@@ -389,23 +392,7 @@ export default function OrderPage() {
               </div>
             </button>
           </div>
-          {(() => {
-            const sharedSuggestions = suggestions.filter(s => s.target === 'shared');
-            if (sharedSuggestions.length === 0) return null;
-            return (
-              <div className="flex items-center gap-3 mt-3 p-4" style={{ backgroundColor: 'var(--color-green)', borderRadius: 'var(--radius-sm)' }}>
-                <img src={aiSuggestionIcon} alt="AI" style={{ width: '36px', height: '36px', objectFit: 'contain', flexShrink: 0 }} />
-                <div className="flex gap-4 flex-wrap">
-                  {sharedSuggestions.slice(0, 2).map((s) => (
-                    <div key={s.itemId} className="flex flex-col">
-                      <span style={{ color: 'var(--color-primary)', fontSize: '12px', fontWeight: 'var(--font-regular)' }}>{s.itemName}</span>
-                      <span style={{ color: 'var(--color-primary)', fontSize: '12px', fontWeight: 'var(--font-light)' }}>€{Number(s.price).toFixed(2)}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            );
-          })()}
+
         </div>
 
         {/* NEW ORDER */}
@@ -550,21 +537,23 @@ export default function OrderPage() {
                     ))}
 
                     {(() => {
-                      const groupSuggestions = suggestions.filter(s => s.target === gender || s.target === 'shared');
-                      if (groupSuggestions.length === 0) return null;
+                      const groupSuggestions = suggestionsByGender[gender] ?? [];
+                      const isLoading = loadingGender === gender;
+                      if (groupSuggestions.length === 0 && !isLoading) return null;
                       return (
                         <div className="flex items-center gap-3 mt-4 p-4" style={{ backgroundColor: 'var(--color-green)', borderRadius: 'var(--radius-sm)' }}>
                           <img src={aiSuggestionIcon} alt="AI" style={{ width: '36px', height: '36px', objectFit: 'contain', flexShrink: 0 }} />
-                          <div className="flex gap-4 flex-wrap">
-                            {groupSuggestions.slice(0, 2).map((s) => (
-                              <div key={s.itemId} className="flex flex-col">
-                                <span style={{ color: 'var(--color-primary)', fontSize: '12px', fontWeight: 'var(--font-regular)' }}>{s.itemName}</span>
-                                <span style={{ color: 'var(--color-primary)', fontSize: '12px', fontWeight: 'var(--font-light)' }}>€{Number(s.price).toFixed(2)}</span>
-                              </div>
-                            ))}
-                          </div>
-                          {isFetchingSuggestions && (
-                            <div className="ml-auto w-[16px] h-[16px] border-[2px] rounded-full animate-spin" style={{ borderColor: 'rgba(3,40,19,0.2)', borderTopColor: 'var(--color-primary)' }} />
+                          {isLoading ? (
+                            <div className="w-[16px] h-[16px] border-[2px] rounded-full animate-spin" style={{ borderColor: 'rgba(3,40,19,0.2)', borderTopColor: 'var(--color-primary)' }} />
+                          ) : (
+                            <div className="flex gap-4 flex-wrap">
+                              {groupSuggestions.slice(0, 2).map((s: any) => (
+                                <div key={s.itemId} className="flex flex-col">
+                                  <span style={{ color: 'var(--color-primary)', fontSize: '12px', fontWeight: 'var(--font-regular)' }}>{s.itemName}</span>
+                                  <span style={{ color: 'var(--color-primary)', fontSize: '12px', fontWeight: 'var(--font-light)' }}>€{Number(s.price).toFixed(2)}</span>
+                                </div>
+                              ))}
+                            </div>
                           )}
                         </div>
                       );

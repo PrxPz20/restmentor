@@ -7,7 +7,7 @@ import '@fastify/cookie';
 import '@fastify/jwt';
 import { z } from 'zod';
 import 'dotenv/config';
-import { getAISuggestions } from '../services/ai.service.js';
+import { initSessionAgent, getAISuggestions } from '../services/ai.service.js';
 
 async function getTenantDbFromToken(app: FastifyInstance, request: any) {
   const masterUrl = process.env.MASTER_DATABASE_URL;
@@ -39,51 +39,21 @@ async function getTenantDbFromToken(app: FastifyInstance, request: any) {
 
 export async function suggestionRoutes(app: FastifyInstance) {
 
-  // ── POST /api/sessions/:id/suggestions ──────────────────────
-  app.post('/:sessionId/suggestions', async (request, reply) => {
+  // ── POST /api/sessions/:sessionId/ai-init ────────────────────
+  // Called once when waiter taps Complete — pre-loads menu + rules into agent cache
+  app.post('/:sessionId/ai-init', async (request, reply) => {
     try {
       const { db } = await getTenantDbFromToken(app, request);
       const { sessionId } = request.params as { sessionId: string };
 
-      const bodySchema = z.object({
-        lastAddedItem: z.object({
-          name: z.string(),
-          genderTarget: z.string(),
-        }),
-      });
-
-      const parsed = bodySchema.safeParse(request.body);
-      if (!parsed.success) {
-        return reply.status(400).send({ statusCode: 400, error: 'Bad Request', message: 'Invalid input' });
-      }
-
-      const { lastAddedItem } = parsed.data;
-
-      // ── Fetch session details ──────────────────────────────
+      // Fetch session guest composition
       const sessionResult = await db.execute(
         sql`SELECT guest_males, guest_females, guest_kids FROM table_sessions WHERE id = ${sessionId} LIMIT 1`
       );
       const session = sessionResult.rows[0];
-      if (!session) return reply.status(404).send({ statusCode: 404, error: 'Not Found', message: 'Session not found' });
+      if (!session) return reply.status(404).send({ error: 'Session not found' });
 
-      // ── Fetch all ordered items for this session ───────────
-      const orderedResult = await db.execute(
-        sql`SELECT oi.menu_item_id, mi.name, oi.quantity, oi.gender_target
-            FROM orders o
-            JOIN order_items oi ON oi.order_id = o.id
-            JOIN menu_items mi ON mi.id = oi.menu_item_id
-            WHERE o.session_id = ${sessionId}
-            AND oi.quantity > 0`
-      );
-
-      const orderedItems = orderedResult.rows.map((row: any) => ({
-        menuItemId: row.menu_item_id,
-        name: row.name,
-        quantity: row.quantity,
-        genderTarget: row.gender_target,
-      }));
-
-      // ── Fetch full menu ────────────────────────────────────
+      // Fetch full active menu
       const menuResult = await db.execute(
         sql`SELECT mi.id, mi.name, mi.description, mi.price, mi.destination, mc.name as category
             FROM menu_items mi
@@ -101,31 +71,76 @@ export async function suggestionRoutes(app: FastifyInstance) {
         destination: row.destination,
       }));
 
-      if (menu.length === 0) {
-        return reply.send({ suggestions: [] });
+      // Initialize agent context — menu sent ONCE, cached in memory
+      initSessionAgent(
+        sessionId,
+        menu,
+        session.guest_males as number,
+        session.guest_females as number,
+        session.guest_kids as number
+      );
+
+      return reply.send({ success: true });
+    } catch (err: any) {
+      if (err.code === 'FST_JWT_NO_AUTHORIZATION_IN_HEADER') {
+        return reply.status(401).send({ statusCode: 401, error: 'Unauthorized', message: 'Missing authorization token' });
       }
+      app.log.error(err);
+      return reply.status(500).send({ error: 'Failed to initialize AI agent' });
+    }
+  });
 
-      // ── Get ordered item IDs to exclude from suggestions ──
-      const orderedItemIds = new Set(orderedItems.map(i => i.menuItemId));
-      const filteredMenu = menu.filter(m => !orderedItemIds.has(m.id));
+  // ── POST /api/sessions/:sessionId/suggestions ────────────────
+  // Called every time an item is added — tiny payload, fast response
+  app.post('/:sessionId/suggestions', async (request, reply) => {
+    try {
+      const { db } = await getTenantDbFromToken(app, request);
+      const { sessionId } = request.params as { sessionId: string };
 
-      // ── Call AI ────────────────────────────────────────────
-      const suggestions = await getAISuggestions({
-        menu: filteredMenu,
-        guestMales: session.guest_males as number,
-        guestFemales: session.guest_females as number,
-        guestKids: session.guest_kids as number,
-        orderedItems,
-        lastAddedItem,
+      const bodySchema = z.object({
+        genderTarget: z.enum(['male', 'female', 'kid']),
+        lastAddedItemName: z.string(),
       });
 
-      // ── Log suggestion to DB ───────────────────────────────
+      const parsed = bodySchema.safeParse(request.body);
+      if (!parsed.success) {
+        return reply.status(400).send({ statusCode: 400, error: 'Bad Request', message: 'Invalid input' });
+      }
+
+      const { genderTarget, lastAddedItemName } = parsed.data;
+
+      // Fetch only the items for this gender group
+      const orderedResult = await db.execute(
+        sql`SELECT oi.menu_item_id, mi.name, oi.quantity, oi.gender_target
+            FROM orders o
+            JOIN order_items oi ON oi.order_id = o.id
+            JOIN menu_items mi ON mi.id = oi.menu_item_id
+            WHERE o.session_id = ${sessionId}
+            AND oi.gender_target = ${genderTarget}
+            AND oi.quantity > 0`
+      );
+
+      const currentGroupItems = orderedResult.rows.map((row: any) => ({
+        menuItemId: row.menu_item_id,
+        name: row.name,
+        quantity: row.quantity,
+        genderTarget: row.gender_target,
+      }));
+
+      // Get AI suggestions — agent context already loaded, this is fast
+      const suggestions = await getAISuggestions(sessionId, {
+        genderTarget,
+        lastAddedItemName,
+        currentGroupItems,
+      });
+
+      // Log to DB
       if (suggestions.length > 0) {
         await db.execute(
           sql`INSERT INTO ai_suggestions (session_id, round_context, suggested_items, reasoning, accepted_item_ids)
               VALUES (
                 ${sessionId},
-                ${JSON.stringify({ orderedItems, lastAddedItem })}::jsonb,
+                ${JSON.stringify({ genderTarget, lastAddedItemName })}::jsonb,
                 ${JSON.stringify(suggestions.map(s => ({ itemId: s.itemId, itemName: s.itemName, price: s.price, target: s.target })))}::jsonb,
                 ${JSON.stringify(suggestions.map(s => ({ itemId: s.itemId, reasons: s.reasons })))}::jsonb,
                 '[]'::jsonb
@@ -140,7 +155,7 @@ export async function suggestionRoutes(app: FastifyInstance) {
         return reply.status(401).send({ statusCode: 401, error: 'Unauthorized', message: 'Missing authorization token' });
       }
       app.log.error(err);
-      return reply.status(500).send({ statusCode: 500, error: 'Internal Server Error', message: 'Failed to get suggestions' });
+      return reply.status(500).send({ error: 'Failed to get suggestions' });
     }
   });
 }

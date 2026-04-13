@@ -2,10 +2,12 @@
 import 'dotenv/config';
 import OpenAI from 'openai';
 
+let _openaiClient: OpenAI | null = null;
 function getOpenAIClient() {
-  return new OpenAI({
-    apiKey: process.env.OPENAI_API_KEY,
-  });
+  if (!_openaiClient) {
+    _openaiClient = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+  }
+  return _openaiClient;
 }
 
 // ── Types ─────────────────────────────────────────────────────
@@ -29,113 +31,167 @@ export interface AISuggestion {
   itemId: string;
   itemName: string;
   price: string;
-  target: 'male' | 'female' | 'kid' | 'shared';
+  target: 'male' | 'female' | 'kid';
   reasons: string[];
 }
 
 export interface SuggestionRequest {
-  menu: MenuItem[];
-  guestMales: number;
-  guestFemales: number;
-  guestKids: number;
-  orderedItems: OrderedItem[];
-  lastAddedItem: {
-    name: string;
-    genderTarget: string;
-  };
+  genderTarget: 'male' | 'female' | 'kid';
+  lastAddedItemName: string;
+  currentGroupItems: OrderedItem[];
 }
 
-// ── Build system prompt (the persistent agent context) ────────
-function buildSystemPrompt(menu: MenuItem[]): string {
-  const menuByCategory: Record<string, MenuItem[]> = {};
-  for (const item of menu) {
+// ── Agent context cache (keyed by sessionId) ──────────────────
+interface AgentContext {
+  systemPrompt: string;
+  shortToRealId: Map<string, string>;
+  realToShortId: Map<string, string>;
+  shortIdToName: Map<string, string>;
+  shortIdToPrice: Map<string, string>;
+  shortIdToCategory: Map<string, string>;
+  realIdToCategory: Map<string, string>;
+}
+const sessionAgentCache = new Map<string, AgentContext>();
+
+// ── Build system prompt with short IDs ───────────────────────
+function buildSystemPrompt(
+  menu: MenuItem[],
+  shortToReal: Map<string, string>,
+  guestMales: number,
+  guestFemales: number,
+  guestKids: number
+): string {
+  // Group menu by category using short IDs
+  const menuByCategory: Record<string, { shortId: string; name: string; price: string }[]> = {};
+
+  for (const [shortId, realId] of shortToReal) {
+    const item = menu.find(m => m.id === realId);
+    if (!item) continue;
     if (!menuByCategory[item.category]) menuByCategory[item.category] = [];
-    menuByCategory[item.category].push(item);
+    menuByCategory[item.category].push({ shortId, name: item.name, price: item.price });
   }
 
   const menuText = Object.entries(menuByCategory)
     .map(([category, items]) => {
-      const itemList = items
-        .map(i => `  - [${i.id}] ${i.name} €${i.price}${i.description ? ` (${i.description})` : ''}`)
-        .join('\n');
-      return `${category}:\n${itemList}`;
+      const itemList = items.map(i => `[${i.shortId}]${i.name}€${i.price}`).join(' | ');
+      return `[${category.toUpperCase()}] ${itemList}`;
     })
-    .join('\n\n');
+    .join('\n');
 
-  return `You are an expert restaurant AI assistant and sommelier. Your job is to suggest menu items to waiters in real time as they take orders.
+  return `You are an expert restaurant server and sommelier with 20 years of experience.
+Table: ${guestMales} male(s), ${guestFemales} female(s), ${guestKids} kid(s)
 
-FULL MENU:
+MENU (use short IDs exactly as shown):
 ${menuText}
 
-RULES:
-1. Only suggest items that are on the menu above — never invent items
-2. Never suggest items already ordered by that group
-3. Suggestions must complement what has been ordered — think about flavour pairing, balance, and flow of the meal
-4. Be gender-aware:
-   - Males: can handle bold, hearty, rich suggestions
-   - Females: prefer lighter, more refined options — avoid heavy BBQ/grill-only suggestions
-   - Kids: only suggest kid-friendly items
-   - Shared: suggest items the whole table would enjoy together
-5. Give 2-3 suggestions maximum per response
-6. Each suggestion must have 2-3 short, specific reasoning bullet points that the waiter can use as talking points with the customer
-7. Reasoning must reference actual items ordered — be specific, not generic
-8. Return ONLY valid JSON — no markdown, no explanation outside the JSON
+YOUR TASK:
+Suggest EXACTLY 2 menu items that pair well with the trigger item (the last item added by the group).
+The trigger item is the primary pairing anchor — your suggestions must complement it specifically.
+Also consider the other items already ordered by the group for overall meal balance.
+
+STRICT RULES — every rule is mandatory:
+1. ONLY suggest items from the MENU above using their exact short IDs — never invent items
+2. NEVER suggest any item listed under ALREADY ORDERED — this is non-negotiable and the most critical rule
+3. NEVER suggest an item from the same category as the trigger item — e.g. if trigger is a Main, do NOT suggest another Main
+4. Suggestions must complement the trigger item through flavour pairing, balance, or meal progression
+5. Suggestions must target the requested gender group only:
+   - male: bold flavours, full-bodied red wines, hearty sides, sauces that enhance meat/fish
+   - female: lighter options, crisp white wines or rosé, fresh salads, refined desserts — avoid heavy grilled meats
+   - kid: ONLY juice, water, lemonade, ice cream, or kid-friendly desserts — NEVER suggest alcohol, coffee, espresso, cocktails, or spicy dishes under any circumstances
+6. Reasoning must be specific — reference the trigger item by name and explain exactly why this pairing works
+7. Return ONLY valid JSON, no markdown, no explanation outside the JSON
 
 RESPONSE FORMAT:
-{
-  "suggestions": [
-    {
-      "itemId": "uuid-here",
-      "itemName": "Item Name",
-      "price": "12.50",
-      "target": "male|female|kid|shared",
-      "reasons": ["reason 1", "reason 2", "reason 3"]
-    }
-  ]
-}`;
+{"suggestions":[{"itemId":"shortId","itemName":"Name","price":"0.00","target":"male|female|kid","reasons":["pairs with [trigger item] because...","balances the meal by..."]}]}`;
 }
 
-// ── Build user message (tiny, sent every time) ────────────────
-function buildUserMessage(request: SuggestionRequest): string {
-  const { guestMales, guestFemales, guestKids, orderedItems, lastAddedItem } = request;
+// ── Init agent context for a session ─────────────────────────
+export function initSessionAgent(
+  sessionId: string,
+  menu: MenuItem[],
+  guestMales: number,
+  guestFemales: number,
+  guestKids: number
+): void {
+  // Build short ID maps — avoids sending 36-char UUIDs to OpenAI
+  const shortToReal = new Map<string, string>();
+  const realToShort = new Map<string, string>();
+  const shortIdToName = new Map<string, string>();
+  const shortIdToPrice = new Map<string, string>();
 
-  const maleItems = orderedItems.filter(i => i.genderTarget === 'male');
-  const femaleItems = orderedItems.filter(i => i.genderTarget === 'female');
-  const kidItems = orderedItems.filter(i => i.genderTarget === 'kid');
-  const sharedItems = orderedItems.filter(i => i.genderTarget === 'shared');
+  menu.forEach((item, index) => {
+    const shortId = `m${String(index + 1).padStart(2, '0')}`;
+    shortToReal.set(shortId, item.id);
+    realToShort.set(item.id, shortId);
+    shortIdToName.set(shortId, item.name);
+    shortIdToPrice.set(shortId, item.price);
+  });
 
-  const formatItems = (items: OrderedItem[]) =>
-    items.length > 0
-      ? items.map(i => `${i.name} x${i.quantity}`).join(', ')
-      : 'nothing yet';
+  const systemPrompt = buildSystemPrompt(menu, shortToReal, guestMales, guestFemales, guestKids);
 
-  return `Table composition: ${guestMales} male(s), ${guestFemales} female(s), ${guestKids} kid(s)
+  const shortIdToCategory = new Map<string, string>();
+  const realIdToCategory = new Map<string, string>();
+  menu.forEach((item, index) => {
+    const shortId = `m${String(index + 1).padStart(2, '0')}`;
+    shortIdToCategory.set(shortId, item.category);
+    realIdToCategory.set(item.id, item.category);
+  });
 
-Just added: ${lastAddedItem.name} for ${lastAddedItem.genderTarget}
-
-Current orders:
-- Male segment: ${formatItems(maleItems)}
-- Female segment: ${formatItems(femaleItems)}
-- Kids segment: ${formatItems(kidItems)}
-- Shared: ${formatItems(sharedItems)}
-
-Based on what has been ordered, suggest 2-3 complementary items. Focus on what was just added and the overall order context.`;
+  sessionAgentCache.set(sessionId, {
+    systemPrompt,
+    shortToRealId: shortToReal,
+    realToShortId: realToShort,
+    shortIdToName,
+    shortIdToPrice,
+    shortIdToCategory,
+    realIdToCategory,
+  });
 }
 
-// ── Main suggestion function ──────────────────────────────────
-export async function getAISuggestions(request: SuggestionRequest): Promise<AISuggestion[]> {
+export async function getAISuggestions(
+  sessionId: string,
+  request: SuggestionRequest
+): Promise<AISuggestion[]> {
   try {
-    const systemPrompt = buildSystemPrompt(request.menu);
-    const userMessage = buildUserMessage(request);
+    const context = sessionAgentCache.get(sessionId);
+    if (!context) {
+      console.warn(`No agent context for session ${sessionId} — skipping`);
+      return [];
+    }
+
+    const { genderTarget, lastAddedItemName, currentGroupItems } = request;
+
+    // Find trigger item's category to exclude same-category suggestions
+    const triggerShortId = [...context.shortIdToName.entries()]
+      .find(([, name]) => name === lastAddedItemName)?.[0];
+    const triggerCategory = triggerShortId
+      ? context.shortIdToCategory.get(triggerShortId)
+      : null;
+
+    // Build already-ordered exclusion list
+    const orderedShortIds = new Set(
+      currentGroupItems.map(i => context.realToShortId.get(i.menuItemId)).filter(Boolean)
+    );
+    const orderedNames = currentGroupItems.map(i => i.name).join(', ');
+    const excludedStr = orderedShortIds.size > 0
+      ? `ALREADY ORDERED - DO NOT SUGGEST: ${[...orderedShortIds].join(',')}\n`
+      : '';
+    const categoryStr = triggerCategory
+      ? `DO NOT SUGGEST FROM CATEGORY "${triggerCategory}" — trigger item is already from this category.\n`
+      : '';
+
+    const userMessage = `${genderTarget} group orders: ${orderedNames || 'none'}
+Trigger item just added: ${lastAddedItemName}${triggerCategory ? ` (category: ${triggerCategory})` : ''}
+${excludedStr}${categoryStr}Suggest 2 complementary items for ${genderTarget}.`;
 
     const response = await getOpenAIClient().chat.completions.create({
       model: 'gpt-4o-mini',
       messages: [
-        { role: 'system', content: systemPrompt },
+        { role: 'system', content: context.systemPrompt },
         { role: 'user', content: userMessage },
       ],
       temperature: 0.7,
-      max_tokens: 800,
+      max_tokens: 300,
       response_format: { type: 'json_object' },
     });
 
@@ -143,11 +199,34 @@ export async function getAISuggestions(request: SuggestionRequest): Promise<AISu
     if (!content) return [];
 
     const parsed = JSON.parse(content);
-    const suggestions: AISuggestion[] = parsed.suggestions ?? [];
+    const rawSuggestions: any[] = parsed.suggestions ?? [];
 
-    // Validate all suggestions reference real menu items
-    const menuIds = new Set(request.menu.map(m => m.id));
-    return suggestions.filter(s => menuIds.has(s.itemId));
+    // Map short IDs back to real UUIDs + enforce rules in code
+    const orderedRealIds = new Set(currentGroupItems.map(i => i.menuItemId));
+
+    const suggestions: AISuggestion[] = rawSuggestions
+      .map(s => {
+        const realId = context.shortToRealId.get(s.itemId);
+        if (!realId) return null;
+
+        // Code-level: never suggest already ordered items
+        if (orderedRealIds.has(realId)) return null;
+
+        // Code-level: never suggest from same category as trigger
+        const suggestionCategory = context.shortIdToCategory.get(s.itemId);
+        if (triggerCategory && suggestionCategory === triggerCategory) return null;
+
+        return {
+          itemId: realId,
+          itemName: context.shortIdToName.get(s.itemId) ?? s.itemName,
+          price: context.shortIdToPrice.get(s.itemId) ?? s.price,
+          target: s.target,
+          reasons: s.reasons ?? [],
+        };
+      })
+      .filter((s): s is AISuggestion => s !== null);
+
+    return suggestions;
 
   } catch (err) {
     console.error('AI suggestion error:', err);

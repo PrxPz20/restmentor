@@ -1,5 +1,5 @@
-import { API_BASE } from '../../config';
 // restmentor/apps/web/src/pages/TableConfig/TableConfigPage.tsx
+import { API_BASE } from '../../config';
 import { useState } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import Header from '../../components/Header';
@@ -74,7 +74,16 @@ export default function TableConfigPage() {
         return;
       }
 
+      // Navigate immediately — ai-init happens in background
       navigate(`/sessions/${data.sessionId}/order`);
+
+      // Fire ai-init silently in background — no await
+      fetch(`${API_BASE}/api/sessions/${data.sessionId}/ai-init`, {
+        method: 'POST',
+        credentials: 'include',
+      }).catch(() => {
+        // Fail silently — suggestions are a bonus
+      });
     } catch {
       setError('Unable to connect to server');
       setIsLoading(false);

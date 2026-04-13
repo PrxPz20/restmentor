@@ -67,3 +67,29 @@ body {
 .animate-fade-in {
   animation: fade-in 0.5s ease-out;
 }
+
+
+/* ── AI Suggestions loader ────────────────────────────────────────── */
+@keyframes shimmer {
+  0% { background-position: -400px 0; }
+  100% { background-position: 400px 0; }
+}
+
+@keyframes sparkle-main {
+  0%, 100% { transform: scale(1) rotate(0deg); opacity: 1; }
+  50% { transform: scale(0.75) rotate(45deg); opacity: 0.6; }
+}
+@keyframes sparkle-small-1 {
+  0%, 100% { transform: scale(0.55) rotate(0deg); opacity: 0.5; }
+  50% { transform: scale(0.85) rotate(-45deg); opacity: 1; }
+}
+@keyframes sparkle-small-2 {
+  0%, 100% { transform: scale(0.35) rotate(0deg); opacity: 0.3; }
+  33% { transform: scale(0.6) rotate(45deg); opacity: 0.8; }
+  66% { transform: scale(0.3) rotate(-20deg); opacity: 0.2; }
+}
+
+@keyframes fadeSlideUp {
+  0% { opacity: 0; transform: translateY(8px); }
+  100% { opacity: 1; transform: translateY(0); }
+}

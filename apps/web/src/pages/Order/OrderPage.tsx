@@ -50,7 +50,8 @@ export default function OrderPage() {
   const [hasPendingChanges, setHasPendingChanges] = useState(false);
   const [hasModifiedOrders, setHasModifiedOrders] = useState(false);
   const [suggestionsByGender, setSuggestionsByGender] = useState<Record<string, any[]>>({});
-  const [loadingGender, setLoadingGender] = useState<string | null>(null);
+  // const [loadingGender, setLoadingGender] = useState<string | null>(null);
+  const [loadingGender, setLoadingGender] = useState<string | null>('male');
 
   const user = JSON.parse(localStorage.getItem('user') || '{}');
 
@@ -541,19 +542,41 @@ export default function OrderPage() {
                       const isLoading = loadingGender === gender;
                       if (groupSuggestions.length === 0 && !isLoading) return null;
                       return (
-                        <div className="flex items-center gap-3 mt-4 p-4" style={{ backgroundColor: 'var(--color-green)', borderRadius: 'var(--radius-sm)' }}>
-                          <img src={aiSuggestionIcon} alt="AI" style={{ width: '36px', height: '36px', objectFit: 'contain', flexShrink: 0 }} />
+                        <div className="flex items-center mt-4 p-4" style={{ backgroundColor: 'var(--color-green)', borderRadius: 'var(--radius-sm)', alignItems: 'center', justifyContent: 'space-between' }}>
                           {isLoading ? (
-                            <div className="w-[16px] h-[16px] border-[2px] rounded-full animate-spin" style={{ borderColor: 'rgba(3,40,19,0.2)', borderTopColor: 'var(--color-primary)' }} />
+                            <>
+                              <div style={{ position: 'relative', width: '36px', height: '36px', flexShrink: 0 }}>
+                                <span style={{ position: 'absolute', top: 0, left: 0, width: '22px', height: '22px', animation: 'sparkle-main 1.8s ease-in-out infinite' }}>
+                                  <svg viewBox="0 0 24 24" width="22" height="22"><path d="M12 0 C12 0 13.5 8.5 24 12 C13.5 15.5 12 24 12 24 C12 24 10.5 15.5 0 12 C10.5 8.5 12 0 12 0Z" fill="#032813" /></svg>
+                                </span>
+                                <span style={{ position: 'absolute', bottom: '2px', right: 0, width: '16px', height: '16px', animation: 'sparkle-small-1 1.8s ease-in-out infinite 0.3s' }}>
+                                  <svg viewBox="0 0 24 24" width="16" height="16"><path d="M12 0 C12 0 13.5 8.5 24 12 C13.5 15.5 12 24 12 24 C12 24 10.5 15.5 0 12 C10.5 8.5 12 0 12 0Z" fill="#032813" /></svg>
+                                </span>
+                                <span style={{ position: 'absolute', top: '4px', right: '2px', width: '10px', height: '10px', animation: 'sparkle-small-2 1.8s ease-in-out infinite 0.6s' }}>
+                                  <svg viewBox="0 0 24 24" width="10" height="10"><path d="M12 0 C12 0 13.5 8.5 24 12 C13.5 15.5 12 24 12 24 C12 24 10.5 15.5 0 12 C10.5 8.5 12 0 12 0Z" fill="#032813" /></svg>
+                                </span>
+                              </div>
+      <div style={{ flex: 1, display: 'flex', gap: '24px', paddingLeft: '30px' }}>
+                                {[0, 1].map((i) => (
+                                  <div key={i} style={{ display: 'flex', flexDirection: 'column', gap: '6px', flex: 1 }}>
+                                    <div style={{ height: '12px', borderRadius: '6px', background: 'linear-gradient(90deg, rgba(3,40,19,0.08) 25%, rgba(3,40,19,0.15) 50%, rgba(3,40,19,0.08) 75%)', backgroundSize: '400px 100%', animation: 'shimmer 1.6s infinite linear', width: i === 0 ? '80%' : '70%' }} />
+                                    <div style={{ height: '10px', borderRadius: '6px', background: 'linear-gradient(90deg, rgba(3,40,19,0.08) 25%, rgba(3,40,19,0.15) 50%, rgba(3,40,19,0.08) 75%)', backgroundSize: '400px 100%', animation: 'shimmer 1.6s infinite linear', width: i === 0 ? '40%' : '35%' }} />
+                                  </div>
+                                ))}
+                              </div>
+                            </>
                           ) : (
-                            <div className="flex gap-4 flex-wrap">
-                              {groupSuggestions.slice(0, 2).map((s: any) => (
-                                <div key={s.itemId} className="flex flex-col">
-                                  <span style={{ color: 'var(--color-primary)', fontSize: '12px', fontWeight: 'var(--font-regular)' }}>{s.itemName}</span>
-                                  <span style={{ color: 'var(--color-primary)', fontSize: '12px', fontWeight: 'var(--font-light)' }}>€{Number(s.price).toFixed(2)}</span>
-                                </div>
-                              ))}
-                            </div>
+                            <>
+                              <img src={aiSuggestionIcon} alt="AI" style={{ width: '36px', height: '36px', objectFit: 'contain', flexShrink: 0, animation: 'fadeSlideUp 0.4s ease-out' }} />
+                              <div style={{ animation: 'fadeSlideUp 0.4s ease-out 0.1s both', display: 'flex', flex: 1, gap: '16px', paddingLeft: '40px' }}>
+                                {groupSuggestions.slice(0, 2).map((s: any) => (
+                                  <div key={s.itemId} className="flex flex-col" style={{ flex: 1 }}>
+                                    <span style={{ color: 'var(--color-primary)', fontSize: '12px', fontWeight: 'var(--font-regular)' }}>{s.itemName}</span>
+                                    <span style={{ color: 'var(--color-primary)', fontSize: '12px', fontWeight: 'var(--font-light)' }}>€{Number(s.price).toFixed(2)}</span>
+                                  </div>
+                                ))}
+                              </div>
+                            </>
                           )}
                         </div>
                       );

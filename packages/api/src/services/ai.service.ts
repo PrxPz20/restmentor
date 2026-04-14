@@ -191,7 +191,7 @@ ${excludedStr}${categoryStr}Suggest 2 complementary items for ${genderTarget}.`;
         { role: 'user', content: userMessage },
       ],
       temperature: 0.7,
-      max_tokens: 300,
+      max_tokens: 600,
       response_format: { type: 'json_object' },
     });
 

@@ -243,7 +243,7 @@ export default function OrderPage() {
     }
   };
 
-  const fetchSuggestions = async (genderTarget: string, lastAddedItemName: string) => {
+  const fetchSuggestions = async (genderTarget: string, lastAddedItemName: string, isRetry = false) => {
     if (!sessionId || genderTarget === 'shared') return;
     setLoadingGender(genderTarget);
     try {
@@ -255,9 +255,23 @@ export default function OrderPage() {
       });
       if (response.ok) {
         const data = await response.json();
+        const suggestions = data.suggestions ?? [];
+
+        // If empty and not already a retry — agent context was lost (server restart)
+        // Re-init silently then retry once
+        if (suggestions.length === 0 && !isRetry) {
+          await fetch(`${API_BASE}/api/sessions/${sessionId}/ai-init`, {
+            method: 'POST',
+            credentials: 'include',
+          });
+          setLoadingGender(genderTarget);
+          await fetchSuggestions(genderTarget, lastAddedItemName, true);
+          return;
+        }
+
         setSuggestionsByGender(prev => ({
           ...prev,
-          [genderTarget]: data.suggestions ?? [],
+          [genderTarget]: suggestions,
         }));
       }
     } catch {
@@ -556,7 +570,7 @@ export default function OrderPage() {
                                   <svg viewBox="0 0 24 24" width="10" height="10"><path d="M12 0 C12 0 13.5 8.5 24 12 C13.5 15.5 12 24 12 24 C12 24 10.5 15.5 0 12 C10.5 8.5 12 0 12 0Z" fill="#032813" /></svg>
                                 </span>
                               </div>
-      <div style={{ flex: 1, display: 'flex', gap: '24px', paddingLeft: '30px' }}>
+                              <div style={{ flex: 1, display: 'flex', gap: '24px', paddingLeft: '30px' }}>
                                 {[0, 1].map((i) => (
                                   <div key={i} style={{ display: 'flex', flexDirection: 'column', gap: '6px', flex: 1 }}>
                                     <div style={{ height: '12px', borderRadius: '6px', background: 'linear-gradient(90deg, rgba(3,40,19,0.08) 25%, rgba(3,40,19,0.15) 50%, rgba(3,40,19,0.08) 75%)', backgroundSize: '400px 100%', animation: 'shimmer 1.6s infinite linear', width: i === 0 ? '80%' : '70%' }} />

@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import Header from '../../components/Header';
 import MenuBrowser from './components/MenuBrowser';
+import SuggestionsBrowser from './components/SuggestionsBrowser';
 import menIcon from '../../assets/men.png';
 import femaleIcon from '../../assets/female.png';
 import kidIcon from '../../assets/kid.png';
@@ -50,8 +51,9 @@ export default function OrderPage() {
   const [hasPendingChanges, setHasPendingChanges] = useState(false);
   const [hasModifiedOrders, setHasModifiedOrders] = useState(false);
   const [suggestionsByGender, setSuggestionsByGender] = useState<Record<string, any[]>>({});
-  // const [loadingGender, setLoadingGender] = useState<string | null>(null);
-  const [loadingGender, setLoadingGender] = useState<string | null>('male');
+  const [loadingGender, setLoadingGender] = useState<string | null>(null);
+  const [suggestionsOpen, setSuggestionsOpen] = useState(false);
+  const [activeSuggestionGender, setActiveSuggestionGender] = useState<string | null>(null);
 
   const user = JSON.parse(localStorage.getItem('user') || '{}');
 
@@ -143,7 +145,6 @@ export default function OrderPage() {
       setHasPendingChanges(true);
       await loadOrders();
 
-      // Trigger AI suggestions after item is added
       if (menuItemName && activeGender !== 'shared') {
         fetchSuggestions(activeGender, menuItemName);
       }
@@ -243,6 +244,27 @@ export default function OrderPage() {
     }
   };
 
+  const handleAddAISuggestedItem = async (menuItemId: string, menuItemName: string, quantity: number) => {
+    if (!currentOrderId || !activeSuggestionGender) return;
+    try {
+      await fetch(`${API_BASE}/api/orders/${currentOrderId}/items`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          menuItemId,
+          genderTarget: activeSuggestionGender,
+          quantity,
+          aiSuggested: true,
+        }),
+      });
+      setHasPendingChanges(true);
+      await loadOrders();
+    } catch {
+      setError('Failed to add suggested item');
+    }
+  };
+
   const fetchSuggestions = async (genderTarget: string, lastAddedItemName: string, isRetry = false) => {
     if (!sessionId || genderTarget === 'shared') return;
     setLoadingGender(genderTarget);
@@ -257,8 +279,6 @@ export default function OrderPage() {
         const data = await response.json();
         const suggestions = data.suggestions ?? [];
 
-        // If empty and not already a retry — agent context was lost (server restart)
-        // Re-init silently then retry once
         if (suggestions.length === 0 && !isRetry) {
           await fetch(`${API_BASE}/api/sessions/${sessionId}/ai-init`, {
             method: 'POST',
@@ -311,6 +331,19 @@ export default function OrderPage() {
     );
   }
 
+const activeSuggestionGroupLetter = activeSuggestionGender
+    ? String.fromCharCode(65 + sortedGenderKeys.indexOf(activeSuggestionGender))
+    : 'A';
+
+  const suggestionsOverlay = suggestionsOpen && activeSuggestionGender ? (
+    <SuggestionsBrowser
+      suggestions={suggestionsByGender[activeSuggestionGender] ?? []}
+      groupLetter={activeSuggestionGroupLetter}
+      onAddItem={handleAddAISuggestedItem}
+      onClose={() => { setSuggestionsOpen(false); setActiveSuggestionGender(null); }}
+    />
+  ) : null;
+
   const menuOverlay = menuOpen && activeGender ? (
     <MenuBrowser
       activeGender={activeGender}
@@ -324,6 +357,7 @@ export default function OrderPage() {
   return (
     <div className="min-h-screen" style={{ backgroundColor: 'var(--color-background)', fontFamily: 'var(--font-family)' }}>
 
+      {suggestionsOverlay}
       {menuOverlay}
 
       <Header userName={user.name} />
@@ -407,10 +441,7 @@ export default function OrderPage() {
               </div>
             </button>
           </div>
-
         </div>
-
-        {/* NEW ORDER */}
 
         {/* NEW ORDER */}
         <div className="mb-4">
@@ -556,7 +587,11 @@ export default function OrderPage() {
                       const isLoading = loadingGender === gender;
                       if (groupSuggestions.length === 0 && !isLoading) return null;
                       return (
-                        <div className="flex items-center mt-4 p-4" style={{ backgroundColor: 'var(--color-green)', borderRadius: 'var(--radius-sm)', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <div
+                          className="flex items-center mt-4 p-4"
+                          style={{ backgroundColor: 'var(--color-green)', borderRadius: 'var(--radius-sm)', alignItems: 'center', justifyContent: 'space-between', cursor: isLoading ? 'default' : 'pointer' }}
+                          onClick={() => { if (!isLoading && groupSuggestions.length > 0) { setActiveSuggestionGender(gender); setSuggestionsOpen(true); } }}
+                        >
                           {isLoading ? (
                             <>
                               <div style={{ position: 'relative', width: '36px', height: '36px', flexShrink: 0 }}>
@@ -570,7 +605,7 @@ export default function OrderPage() {
                                   <svg viewBox="0 0 24 24" width="10" height="10"><path d="M12 0 C12 0 13.5 8.5 24 12 C13.5 15.5 12 24 12 24 C12 24 10.5 15.5 0 12 C10.5 8.5 12 0 12 0Z" fill="#032813" /></svg>
                                 </span>
                               </div>
-                              <div style={{ flex: 1, display: 'flex', gap: '24px', paddingLeft: '30px' }}>
+                              <div style={{ flex: 1, display: 'flex', gap: '24px', paddingLeft: '16px' }}>
                                 {[0, 1].map((i) => (
                                   <div key={i} style={{ display: 'flex', flexDirection: 'column', gap: '6px', flex: 1 }}>
                                     <div style={{ height: '12px', borderRadius: '6px', background: 'linear-gradient(90deg, rgba(3,40,19,0.08) 25%, rgba(3,40,19,0.15) 50%, rgba(3,40,19,0.08) 75%)', backgroundSize: '400px 100%', animation: 'shimmer 1.6s infinite linear', width: i === 0 ? '80%' : '70%' }} />
@@ -582,7 +617,7 @@ export default function OrderPage() {
                           ) : (
                             <>
                               <img src={aiSuggestionIcon} alt="AI" style={{ width: '36px', height: '36px', objectFit: 'contain', flexShrink: 0, animation: 'fadeSlideUp 0.4s ease-out' }} />
-                              <div style={{ animation: 'fadeSlideUp 0.4s ease-out 0.1s both', display: 'flex', flex: 1, gap: '16px', paddingLeft: '40px' }}>
+                              <div style={{ animation: 'fadeSlideUp 0.4s ease-out 0.1s both', display: 'flex', flex: 1, gap: '16px', paddingLeft: '16px' }}>
                                 {groupSuggestions.slice(0, 2).map((s: any) => (
                                   <div key={s.itemId} className="flex flex-col" style={{ flex: 1 }}>
                                     <span style={{ color: 'var(--color-primary)', fontSize: '12px', fontWeight: 'var(--font-regular)' }}>{s.itemName}</span>

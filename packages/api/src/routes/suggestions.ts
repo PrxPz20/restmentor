@@ -90,6 +90,61 @@ export async function suggestionRoutes(app: FastifyInstance) {
     }
   });
 
+
+  // ── GET /api/sessions/:sessionId/suggestions ─────────────────
+  // Restores latest suggestions per gender from DB on page load
+  app.get('/:sessionId/suggestions', async (request, reply) => {
+    try {
+      const { db } = await getTenantDbFromToken(app, request);
+      const { sessionId } = request.params as { sessionId: string };
+
+      // Get the most recent ai_suggestion row per gender target
+      const latestResult = await db.execute(
+        sql`SELECT DISTINCT ON (
+                (suggested_items->0->>'target')
+              )
+              id,
+              suggested_items,
+              reasoning,
+              created_at
+            FROM ai_suggestions
+            WHERE session_id = ${sessionId}
+            ORDER BY (suggested_items->0->>'target'), created_at DESC`
+      );
+
+      const byGender: Record<string, any[]> = {};
+
+      for (const row of latestResult.rows) {
+        const suggestedItems = row.suggested_items as any[];
+        const reasoning = row.reasoning as any[];
+
+        for (const item of suggestedItems) {
+          const target = item.target as string;
+          if (!['male', 'female', 'kid'].includes(target)) continue;
+          if (!byGender[target]) byGender[target] = [];
+
+          const reasonEntry = reasoning.find((r: any) => r.itemId === item.itemId);
+          byGender[target].push({
+            itemId: item.itemId,
+            itemName: item.itemName,
+            price: item.price,
+            target,
+            reasons: reasonEntry?.reasons ?? [],
+          });
+        }
+      }
+
+      return reply.send({ suggestionsByGender: byGender });
+    } catch (err: any) {
+      if (err.code === 'FST_JWT_NO_AUTHORIZATION_IN_HEADER') {
+        return reply.status(401).send({ statusCode: 401, error: 'Unauthorized', message: 'Missing authorization token' });
+      }
+      app.log.error(err);
+      return reply.status(500).send({ error: 'Failed to restore suggestions' });
+    }
+  });
+
+
   // ── POST /api/sessions/:sessionId/suggestions ────────────────
   // Called every time an item is added — tiny payload, fast response
   app.post('/:sessionId/suggestions', async (request, reply) => {
@@ -158,4 +213,25 @@ export async function suggestionRoutes(app: FastifyInstance) {
       return reply.status(500).send({ error: 'Failed to get suggestions' });
     }
   });
+
+
+
+  // ── DELETE /api/sessions/:sessionId/suggestions ──────────────
+  app.delete('/:sessionId/suggestions', async (request, reply) => {
+    try {
+      const { db } = await getTenantDbFromToken(app, request);
+      const { sessionId } = request.params as { sessionId: string };
+      await db.execute(sql`DELETE FROM ai_suggestions WHERE session_id = ${sessionId}`);
+      return reply.send({ success: true });
+    } catch (err: any) {
+      if (err.code === 'FST_JWT_NO_AUTHORIZATION_IN_HEADER') {
+        return reply.status(401).send({ statusCode: 401, error: 'Unauthorized', message: 'Missing authorization token' });
+      }
+      app.log.error(err);
+      return reply.status(500).send({ error: 'Failed to clear suggestions' });
+    }
+  });
+
+
+
 }

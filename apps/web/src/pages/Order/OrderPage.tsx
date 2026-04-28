@@ -59,6 +59,7 @@ export default function OrderPage() {
 
   useEffect(() => {
     loadOrders();
+    restoreSuggestions();
   }, []);
 
   useEffect(() => {
@@ -205,6 +206,11 @@ export default function OrderPage() {
       }
 
       setHasPendingChanges(false);
+      setSuggestionsByGender({});
+      fetch(`${API_BASE}/api/sessions/${sessionId}/suggestions`, {
+        method: 'DELETE',
+        credentials: 'include',
+      }).catch(() => { });
       navigate(`/sessions/${sessionId}/confirmed`, {
         state: {
           sessionId,
@@ -262,6 +268,23 @@ export default function OrderPage() {
       await loadOrders();
     } catch {
       setError('Failed to add suggested item');
+    }
+  };
+
+  const restoreSuggestions = async () => {
+    if (!sessionId) return;
+    try {
+      const response = await fetch(`${API_BASE}/api/sessions/${sessionId}/suggestions`, {
+        credentials: 'include',
+      });
+      if (response.ok) {
+        const data = await response.json();
+        if (Object.keys(data.suggestionsByGender ?? {}).length > 0) {
+          setSuggestionsByGender(data.suggestionsByGender);
+        }
+      }
+    } catch {
+      // fail silently
     }
   };
 
@@ -331,7 +354,7 @@ export default function OrderPage() {
     );
   }
 
-const activeSuggestionGroupLetter = activeSuggestionGender
+  const activeSuggestionGroupLetter = activeSuggestionGender
     ? String.fromCharCode(65 + sortedGenderKeys.indexOf(activeSuggestionGender))
     : 'A';
 

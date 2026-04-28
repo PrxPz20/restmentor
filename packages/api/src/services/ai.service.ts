@@ -42,6 +42,7 @@ export interface SuggestionRequest {
 }
 
 // ── Agent context cache (keyed by sessionId) ──────────────────
+// Auto-expires after 4 hours to prevent memory leaks on long-running servers
 interface AgentContext {
   systemPrompt: string;
   shortToRealId: Map<string, string>;
@@ -50,8 +51,20 @@ interface AgentContext {
   shortIdToPrice: Map<string, string>;
   shortIdToCategory: Map<string, string>;
   realIdToCategory: Map<string, string>;
+  expiresAt: number;
 }
 const sessionAgentCache = new Map<string, AgentContext>();
+const AGENT_CACHE_TTL_MS = 4 * 60 * 60 * 1000; // 4 hours
+
+// Cleanup expired entries every 30 minutes
+setInterval(() => {
+  const now = Date.now();
+  for (const [key, ctx] of sessionAgentCache.entries()) {
+    if (ctx.expiresAt < now) {
+      sessionAgentCache.delete(key);
+    }
+  }
+}, 30 * 60 * 1000);
 
 // ── Build system prompt with short IDs ───────────────────────
 function buildSystemPrompt(
@@ -145,6 +158,7 @@ export function initSessionAgent(
     shortIdToPrice,
     shortIdToCategory,
     realIdToCategory,
+    expiresAt: Date.now() + AGENT_CACHE_TTL_MS,
   });
 }
 

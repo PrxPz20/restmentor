@@ -3,6 +3,20 @@ import { buildApp } from './app.js';
 import { Server } from 'socket.io';
 import 'dotenv/config';
 
+// ── Validate required environment variables on startup ────────
+const REQUIRED_ENV_VARS = [
+  'MASTER_DATABASE_URL',
+  'JWT_SECRET',
+  'COOKIE_SECRET',
+  'OPENAI_API_KEY',
+];
+
+const missingVars = REQUIRED_ENV_VARS.filter(v => !process.env[v]);
+if (missingVars.length > 0) {
+  console.error(`\n❌ Missing required environment variables:\n${missingVars.map(v => `   - ${v}`).join('\n')}\n`);
+  process.exit(1);
+}
+
 const PORT = Number(process.env.PORT) || 3001;
 
 async function start() {

@@ -82,11 +82,29 @@ export async function buildApp() {
   });
 
   // ── Health check ──────────────────────────────────────
-  app.get('/api/health', async () => {
-    return {
-      status: 'ok',
-      timestamp: new Date().toISOString(),
-    };
+  app.get('/api/health', async (request, reply) => {
+    try {
+      const masterUrl = process.env.MASTER_DATABASE_URL;
+      if (!masterUrl) throw new Error('MASTER_DATABASE_URL not set');
+      const { neon } = await import('@neondatabase/serverless');
+      const { drizzle } = await import('drizzle-orm/neon-http');
+      const { sql } = await import('drizzle-orm');
+      const client = neon(masterUrl);
+      const db = drizzle(client);
+      await db.execute(sql`SELECT 1`);
+      return reply.send({
+        status: 'ok',
+        timestamp: new Date().toISOString(),
+        db: 'connected',
+      });
+    } catch (err: any) {
+      return reply.status(503).send({
+        status: 'error',
+        timestamp: new Date().toISOString(),
+        db: 'disconnected',
+        message: err.message,
+      });
+    }
   });
 
   await app.register(authRoutes, { prefix: '/api/auth' });

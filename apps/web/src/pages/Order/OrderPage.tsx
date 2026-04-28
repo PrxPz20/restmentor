@@ -1,6 +1,6 @@
 // restmentor/apps/web/src/pages/Order/OrderPage.tsx
 import { API_BASE } from '../../config';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import Header from '../../components/Header';
 import MenuBrowser from './components/MenuBrowser';
@@ -154,20 +154,35 @@ export default function OrderPage() {
     }
   };
 
-  const handleEditItem = async (orderId: string, itemId: string, newQuantity: number) => {
-    try {
-      await fetch(`${API_BASE}/api/orders/${orderId}/items/${itemId}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ quantity: newQuantity }),
-      });
+  const editTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
 
-      setHasPendingChanges(true);
-      await loadOrders();
-    } catch {
-      setError('Failed to update item');
-    }
+  const handleEditItem = (orderId: string, itemId: string, newQuantity: number) => {
+    // Optimistic UI update
+    setOrders(prev => prev.map(o => o.id === orderId ? {
+      ...o,
+      items: o.items
+        .map(i => i.id === itemId ? { ...i, quantity: newQuantity } : i)
+        .filter(i => i.quantity > 0),
+    } : o));
+
+    setHasPendingChanges(true);
+
+    // Debounce actual API call by 400ms
+    if (editTimers.current[itemId]) clearTimeout(editTimers.current[itemId]);
+    editTimers.current[itemId] = setTimeout(async () => {
+      try {
+        await fetch(`${API_BASE}/api/orders/${orderId}/items/${itemId}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({ quantity: newQuantity }),
+        });
+        await loadOrders();
+      } catch {
+        setError('Failed to update item');
+        await loadOrders();
+      }
+    }, 400);
   };
 
   const handleGenderTap = (gender: GenderTarget) => {
@@ -250,7 +265,7 @@ export default function OrderPage() {
     }
   };
 
-  const handleAddAISuggestedItem = async (menuItemId: string, menuItemName: string, quantity: number) => {
+  const handleAddAISuggestedItem = async (menuItemId: string, _menuItemName: string, quantity: number) => {
     if (!currentOrderId || !activeSuggestionGender) return;
     try {
       await fetch(`${API_BASE}/api/orders/${currentOrderId}/items`, {

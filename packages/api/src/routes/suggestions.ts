@@ -8,34 +8,8 @@ import '@fastify/jwt';
 import { z } from 'zod';
 import 'dotenv/config';
 import { initSessionAgent, getAISuggestions } from '../services/ai.service.js';
+import { getTenantDb, handleRouteError } from '../utils/tenant.js';
 
-async function getTenantDbFromToken(app: FastifyInstance, request: any) {
-  const masterUrl = process.env.MASTER_DATABASE_URL;
-  if (!masterUrl) throw new Error('MASTER_DATABASE_URL not set');
-
-  const token = request.cookies?.accessToken;
-  if (!token) throw Object.assign(new Error('Missing token'), { code: 'FST_JWT_NO_AUTHORIZATION_IN_HEADER' });
-
-  const decoded = app.jwt.verify(token) as {
-    userId: string;
-    restaurantId: string;
-    restaurantSlug: string;
-    role: string;
-  };
-
-  const masterClient = neon(masterUrl);
-  const masterDb = drizzle(masterClient);
-
-  const result = await masterDb.execute(
-    sql`SELECT neon_connection_string FROM restaurants WHERE id = ${decoded.restaurantId} AND status = 'active' LIMIT 1`
-  );
-
-  const restaurant = result.rows[0];
-  if (!restaurant) throw new Error('Restaurant not found');
-
-  const tenantClient = neon(restaurant.neon_connection_string as string);
-  return { db: drizzle(tenantClient), decoded };
-}
 
 export async function suggestionRoutes(app: FastifyInstance) {
 
@@ -43,7 +17,7 @@ export async function suggestionRoutes(app: FastifyInstance) {
   // Called once when waiter taps Complete — pre-loads menu + rules into agent cache
   app.post('/:sessionId/ai-init', async (request, reply) => {
     try {
-      const { db } = await getTenantDbFromToken(app, request);
+      const { db } = await getTenantDb(app, request);
       const { sessionId } = request.params as { sessionId: string };
 
       // Fetch session guest composition
@@ -95,7 +69,7 @@ export async function suggestionRoutes(app: FastifyInstance) {
   // Restores latest suggestions per gender from DB on page load
   app.get('/:sessionId/suggestions', async (request, reply) => {
     try {
-      const { db } = await getTenantDbFromToken(app, request);
+      const { db } = await getTenantDb(app, request);
       const { sessionId } = request.params as { sessionId: string };
 
       // Get the most recent ai_suggestion row per gender target
@@ -149,7 +123,7 @@ export async function suggestionRoutes(app: FastifyInstance) {
   // Called every time an item is added — tiny payload, fast response
   app.post('/:sessionId/suggestions', async (request, reply) => {
     try {
-      const { db } = await getTenantDbFromToken(app, request);
+      const { db } = await getTenantDb(app, request);
       const { sessionId } = request.params as { sessionId: string };
 
       const bodySchema = z.object({
@@ -219,7 +193,7 @@ export async function suggestionRoutes(app: FastifyInstance) {
   // ── DELETE /api/sessions/:sessionId/suggestions ──────────────
   app.delete('/:sessionId/suggestions', async (request, reply) => {
     try {
-      const { db } = await getTenantDbFromToken(app, request);
+      const { db } = await getTenantDb(app, request);
       const { sessionId } = request.params as { sessionId: string };
       await db.execute(sql`DELETE FROM ai_suggestions WHERE session_id = ${sessionId}`);
       return reply.send({ success: true });

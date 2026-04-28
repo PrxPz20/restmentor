@@ -8,6 +8,7 @@ import '@fastify/cookie';
 import '@fastify/jwt';
 import { z } from 'zod';
 import 'dotenv/config';
+import { getTenantDb, handleRouteError } from '../utils/tenant.js';
 
 declare module 'fastify' {
   interface FastifyInstance {
@@ -29,41 +30,14 @@ interface ModificationEntry {
 const sessionModifications = new Map<string, ModificationEntry[]>();
 
 // ── Tenant DB helper ─────────────────────────────────────────
-async function getTenantDbFromToken(app: FastifyInstance, request: any) {
-  const masterUrl = process.env.MASTER_DATABASE_URL;
-  if (!masterUrl) throw new Error('MASTER_DATABASE_URL not set');
-
-  // Read token from HttpOnly cookie explicitly
-  const token = request.cookies?.accessToken;
-  if (!token) throw Object.assign(new Error('Missing token'), { code: 'FST_JWT_NO_AUTHORIZATION_IN_HEADER' });
-
-  const decoded = app.jwt.verify(token) as {
-    userId: string;
-    restaurantId: string;
-    restaurantSlug: string;
-    role: string;
-  };
-
-  const masterClient = neon(masterUrl);
-  const masterDb = drizzle(masterClient);
-
-  const result = await masterDb.execute(
-    sql`SELECT neon_connection_string FROM restaurants WHERE id = ${decoded.restaurantId} AND status = 'active' LIMIT 1`
-  );
-
-  const restaurant = result.rows[0];
-  if (!restaurant) throw new Error('Restaurant not found');
-
-  const tenantClient = neon(restaurant.neon_connection_string as string);
-  return { db: drizzle(tenantClient), decoded };
-}
 
 // ── Validation schemas ───────────────────────────────────────
 const addItemSchema = z.object({
   menuItemId: z.string().uuid(),
   genderTarget: z.enum(['male', 'female', 'kid', 'shared']),
   quantity: z.number().min(1).default(1),
-  notes: z.string().nullable().optional(),
+  notes: z.string().max(500).nullable().optional(),
+  aiSuggested: z.boolean().optional().default(false), // hint only — verified server-side
 });
 
 const editItemSchema = z.object({
@@ -75,7 +49,7 @@ export async function orderRoutes(app: FastifyInstance) {
   // ── GET /api/sessions/:sessionId/orders ─────────────
   app.get('/sessions/:sessionId/orders', async (request, reply) => {
     try {
-      const { db } = await getTenantDbFromToken(app, request);
+      const { db } = await getTenantDb(app, request);
       const { sessionId } = request.params as { sessionId: string };
 
       const ordersResult = await db.execute(sql`
@@ -105,18 +79,14 @@ export async function orderRoutes(app: FastifyInstance) {
 
       return reply.send({ orders: ordersResult.rows });
     } catch (err: any) {
-      if (err.code === 'FST_JWT_NO_AUTHORIZATION_IN_HEADER') {
-        return reply.status(401).send({ statusCode: 401, error: 'Unauthorized', message: 'Missing authorization token' });
-      }
-      app.log.error(err);
-      return reply.status(500).send({ statusCode: 500, error: 'Internal Server Error', message: 'Failed to fetch orders' });
+      return handleRouteError(err, reply, app, 'Failed to fetch orders');
     }
   });
 
   // ── POST /api/sessions/:sessionId/orders ────────────
   app.post('/sessions/:sessionId/orders', async (request, reply) => {
     try {
-      const { db } = await getTenantDbFromToken(app, request);
+      const { db } = await getTenantDb(app, request);
       const { sessionId } = request.params as { sessionId: string };
 
       const roundResult = await db.execute(sql`
@@ -133,18 +103,14 @@ export async function orderRoutes(app: FastifyInstance) {
 
       return reply.send({ order: orderResult.rows[0] });
     } catch (err: any) {
-      if (err.code === 'FST_JWT_NO_AUTHORIZATION_IN_HEADER') {
-        return reply.status(401).send({ statusCode: 401, error: 'Unauthorized', message: 'Missing authorization token' });
-      }
-      app.log.error(err);
-      return reply.status(500).send({ statusCode: 500, error: 'Internal Server Error', message: 'Failed to create order' });
+      return handleRouteError(err, reply, app, 'Failed to create order');
     }
   });
 
   // ── POST /api/orders/:orderId/items ─────────────────
   app.post('/orders/:orderId/items', async (request, reply) => {
     try {
-      const { db } = await getTenantDbFromToken(app, request);
+      const { db } = await getTenantDb(app, request);
       const { orderId } = request.params as { orderId: string };
 
       const parsed = addItemSchema.safeParse(request.body);
@@ -156,7 +122,21 @@ export async function orderRoutes(app: FastifyInstance) {
         });
       }
 
-      const { menuItemId, genderTarget, quantity, notes } = parsed.data;
+const { menuItemId, genderTarget, quantity, notes, aiSuggested: clientAiSuggested } = parsed.data;
+
+      // ── Verify aiSuggested server-side ───────────────────────
+      // Client hint is accepted only if item exists in ai_suggestions for this order's session
+      let verifiedAiSuggested = false;
+      if (clientAiSuggested) {
+        const sessionResult = await db.execute(sql`
+          SELECT s.id FROM ai_suggestions s
+          JOIN orders o ON o.session_id = s.session_id
+          WHERE o.id = ${orderId}
+          AND s.suggested_items @> ${JSON.stringify([{ itemId: menuItemId }])}::jsonb
+          LIMIT 1
+        `);
+        verifiedAiSuggested = sessionResult.rows.length > 0;
+      }
 
       const existing = await db.execute(sql`
         SELECT id, quantity FROM order_items
@@ -175,25 +155,21 @@ export async function orderRoutes(app: FastifyInstance) {
       }
 
       const itemResult = await db.execute(sql`
-        INSERT INTO order_items (order_id, menu_item_id, gender_target, quantity, notes)
-        VALUES (${orderId}, ${menuItemId}, ${genderTarget}, ${quantity}, ${notes ?? null})
+        INSERT INTO order_items (order_id, menu_item_id, gender_target, quantity, notes, ai_suggested)
+        VALUES (${orderId}, ${menuItemId}, ${genderTarget}, ${quantity}, ${notes ?? null}, ${verifiedAiSuggested})
         RETURNING id
       `);
 
       return reply.send({ itemId: itemResult.rows[0]!.id, quantity, action: 'created' });
     } catch (err: any) {
-      if (err.code === 'FST_JWT_NO_AUTHORIZATION_IN_HEADER') {
-        return reply.status(401).send({ statusCode: 401, error: 'Unauthorized', message: 'Missing authorization token' });
-      }
-      app.log.error(err);
-      return reply.status(500).send({ statusCode: 500, error: 'Internal Server Error', message: 'Failed to add item' });
+      return handleRouteError(err, reply, app, 'Failed to add item');
     }
   });
 
   // ── PATCH /api/orders/:orderId/items/:itemId ─────────
   app.patch('/orders/:orderId/items/:itemId', async (request, reply) => {
     try {
-      const { db, decoded } = await getTenantDbFromToken(app, request);
+      const { db, decoded } = await getTenantDb(app, request);
       const { orderId, itemId } = request.params as { orderId: string; itemId: string };
 
       const parsed = editItemSchema.safeParse(request.body);
@@ -269,18 +245,14 @@ export async function orderRoutes(app: FastifyInstance) {
 
       return reply.send({ success: true, itemId, quantity });
     } catch (err: any) {
-      if (err.code === 'FST_JWT_NO_AUTHORIZATION_IN_HEADER') {
-        return reply.status(401).send({ statusCode: 401, error: 'Unauthorized', message: 'Missing authorization token' });
-      }
-      app.log.error(err);
-      return reply.status(500).send({ statusCode: 500, error: 'Internal Server Error', message: 'Failed to edit item' });
+      return handleRouteError(err, reply, app, 'Failed to edit item');
     }
   });
 
   // ── GET /api/menu ───────────────────────────────────
   app.get('/menu', async (request, reply) => {
     try {
-      const { db } = await getTenantDbFromToken(app, request);
+      const { db } = await getTenantDb(app, request);
 
       const categories = await db.execute(sql`
         SELECT id, name, sort_order FROM menu_categories WHERE is_active = true ORDER BY sort_order ASC
@@ -297,18 +269,14 @@ export async function orderRoutes(app: FastifyInstance) {
 
       return reply.send({ menu });
     } catch (err: any) {
-      if (err.code === 'FST_JWT_NO_AUTHORIZATION_IN_HEADER') {
-        return reply.status(401).send({ statusCode: 401, error: 'Unauthorized', message: 'Missing authorization token' });
-      }
-      app.log.error(err);
-      return reply.status(500).send({ statusCode: 500, error: 'Internal Server Error', message: 'Failed to fetch menu' });
+      return handleRouteError(err, reply, app, 'Failed to fetch menu');
     }
   });
 
   // ── POST /api/orders/:orderId/send ──────────────────
   app.post('/orders/:orderId/send', async (request, reply) => {
     try {
-      const { db, decoded } = await getTenantDbFromToken(app, request);
+      const { db, decoded } = await getTenantDb(app, request);
       const { orderId } = request.params as { orderId: string };
 
       // ── Fetch order + table info ──
@@ -449,11 +417,7 @@ export async function orderRoutes(app: FastifyInstance) {
       });
 
     } catch (err: any) {
-      if (err.code === 'FST_JWT_NO_AUTHORIZATION_IN_HEADER') {
-        return reply.status(401).send({ statusCode: 401, error: 'Unauthorized', message: 'Missing authorization token' });
-      }
-      app.log.error(err);
-      return reply.status(500).send({ statusCode: 500, error: 'Internal Server Error', message: 'Failed to send order' });
+      return handleRouteError(err, reply, app, 'Failed to send order');
     }
   });
 }

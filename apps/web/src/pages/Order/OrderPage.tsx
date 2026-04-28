@@ -606,7 +606,10 @@ export default function OrderPage() {
                     ))}
 
                     {(() => {
-                      const groupSuggestions = suggestionsByGender[gender] ?? [];
+                      const orderedMenuItemIds = new Set(allItems.map(i => i.menuItemId));
+                      const groupSuggestions = (suggestionsByGender[gender] ?? []).filter(
+                        (s: any) => !orderedMenuItemIds.has(s.itemId)
+                      );
                       const isLoading = loadingGender === gender;
                       if (groupSuggestions.length === 0 && !isLoading) return null;
                       return (

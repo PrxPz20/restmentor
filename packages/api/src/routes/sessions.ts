@@ -8,6 +8,7 @@ import '@fastify/jwt';
 import 'dotenv/config';
 import { FastifyInstance } from 'fastify';
 import type { Server as SocketIOServer } from 'socket.io';
+import { getTenantDb, handleRouteError } from '../utils/tenant.js';
 
 declare module 'fastify' {
   interface FastifyInstance {
@@ -21,34 +22,6 @@ const createSessionSchema = z.object({
   guestKids: z.number().min(0).default(0),
 });
 
-async function getTenantDbFromToken(app: FastifyInstance, request: any) {
-  const masterUrl = process.env.MASTER_DATABASE_URL;
-  if (!masterUrl) throw new Error('MASTER_DATABASE_URL not set');
-
-  // Read token from HttpOnly cookie explicitly
-  const token = request.cookies?.accessToken;
-  if (!token) throw Object.assign(new Error('Missing token'), { code: 'FST_JWT_NO_AUTHORIZATION_IN_HEADER' });
-
-  const decoded = app.jwt.verify(token) as {
-    userId: string;
-    restaurantId: string;
-    restaurantSlug: string;
-    role: string;
-  };
-
-  const masterClient = neon(masterUrl);
-  const masterDb = drizzle(masterClient);
-
-  const result = await masterDb.execute(
-    sql`SELECT neon_connection_string FROM restaurants WHERE id = ${decoded.restaurantId} AND status = 'active' LIMIT 1`
-  );
-
-  const restaurant = result.rows[0];
-  if (!restaurant) throw new Error('Restaurant not found');
-
-  const tenantClient = neon(restaurant.neon_connection_string as string);
-  return { db: drizzle(tenantClient), decoded };
-}
 
 // Routes under /api/tables prefix
 export async function tableSessionRoutes(app: FastifyInstance) {
@@ -56,7 +29,7 @@ export async function tableSessionRoutes(app: FastifyInstance) {
   // ── POST /api/tables/:id/sessions ───────────────────
   app.post('/:id/sessions', async (request, reply) => {
     try {
-      const { db, decoded } = await getTenantDbFromToken(app, request);
+      const { db, decoded } = await getTenantDb(app, request);
       const { id: tableId } = request.params as { id: string };
 
       const parsed = createSessionSchema.safeParse(request.body);
@@ -95,11 +68,7 @@ export async function tableSessionRoutes(app: FastifyInstance) {
         guestKids,
       });
     } catch (err: any) {
-      if (err.code === 'FST_JWT_NO_AUTHORIZATION_IN_HEADER') {
-        return reply.status(401).send({ statusCode: 401, error: 'Unauthorized', message: 'Missing authorization token' });
-      }
-      app.log.error(err);
-      return reply.status(500).send({ statusCode: 500, error: 'Internal Server Error', message: 'Failed to create session' });
+      return handleRouteError(err, reply, app, 'Failed to create session');
     }
   });
 }
@@ -110,7 +79,7 @@ export async function sessionRoutes(app: FastifyInstance) {
   // ── GET /api/sessions/:id ───────────────────────────
   app.get('/:id', async (request, reply) => {
     try {
-      const { db } = await getTenantDbFromToken(app, request);
+      const { db } = await getTenantDb(app, request);
       const { id } = request.params as { id: string };
 
       const result = await db.execute(
@@ -124,11 +93,7 @@ export async function sessionRoutes(app: FastifyInstance) {
 
       return reply.send({ session });
     } catch (err: any) {
-      if (err.code === 'FST_JWT_NO_AUTHORIZATION_IN_HEADER') {
-        return reply.status(401).send({ statusCode: 401, error: 'Unauthorized', message: 'Missing authorization token' });
-      }
-      app.log.error(err);
-      return reply.status(500).send({ statusCode: 500, error: 'Internal Server Error', message: 'Failed to fetch session' });
+      return handleRouteError(err, reply, app, 'Failed to fetch session');
     }
   });
 }

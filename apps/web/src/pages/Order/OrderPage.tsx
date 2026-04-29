@@ -552,8 +552,18 @@ export default function OrderPage() {
                               <span style={{ color: 'var(--color-primary)', fontSize: 'var(--text-sm)', fontWeight: 'var(--font-bold)', minWidth: '24px' }}>
                                 {item.menuItemId.slice(-4).replace(/\D/g, '').slice(0, 2) || '00'}
                               </span>
-                              <span style={{ color: 'var(--color-primary)', fontSize: 'var(--text-sm)', fontWeight: 'var(--font-light)' }}>
-                                {item.menuItemName}
+<span className="flex items-center gap-1">
+                                <span style={{ color: 'var(--color-primary)', fontSize: 'var(--text-sm)', fontWeight: 'var(--font-light)' }}>
+                                  {item.menuItemName}
+                                </span>
+{item.aiSuggested && (
+                                  <span className="flex items-center gap-0.5" style={{ backgroundColor: 'var(--color-green)', borderRadius: '4px', padding: '1px 5px' }}>
+                                    <svg viewBox="0 0 24 24" width="8" height="8" style={{ flexShrink: 0 }}>
+                                      <path d="M12 0 C12 0 13.5 8.5 24 12 C13.5 15.5 12 24 12 24 C12 24 10.5 15.5 0 12 C10.5 8.5 12 0 12 0Z" fill="#032813"/>
+                                    </svg>
+                                    <span style={{ color: 'var(--color-primary)', fontSize: '9px', fontWeight: 'var(--font-semibold)', letterSpacing: '0.3px' }}>AI</span>
+                                  </span>
+                                )}
                               </span>
                             </div>
                             <div className="flex items-center gap-3" style={{ flexShrink: 0, marginLeft: '16px' }}>

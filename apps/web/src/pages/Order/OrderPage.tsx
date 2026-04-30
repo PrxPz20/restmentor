@@ -247,6 +247,28 @@ export default function OrderPage() {
     }
   };
 
+  const handleMarkAsPaid = async () => {
+    try {
+      const sessionRes = await fetch(`${API_BASE}/api/sessions/${sessionId}`, {
+        credentials: 'include',
+      });
+      if (!sessionRes.ok) return;
+      const sessionData = await sessionRes.json();
+      const tableId = sessionData.session.table_id;
+
+      await fetch(`${API_BASE}/api/tables/${tableId}/status`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ status: 'paid' }),
+      });
+
+      navigate(`/tables/${tableId}/cleaning`);
+    } catch {
+      setError('Failed to mark table as paid');
+    }
+  };
+
   const handleCleaningRequest = async () => {
     try {
       const sessionRes = await fetch(`${API_BASE}/api/sessions/${sessionId}`, {
@@ -739,6 +761,17 @@ export default function OrderPage() {
             'Process Order'
           )}
         </button>
+
+        {/* Mark as Paid Button — only show when there are sent orders */}
+        {allItems.length > 0 && (
+          <button
+            onClick={handleMarkAsPaid}
+            className="w-full h-[52px] text-base cursor-pointer flex items-center justify-center transition-opacity duration-200 hover:opacity-90 border-none mb-[5px]"
+            style={{ backgroundColor: 'var(--color-paid)', color: 'var(--color-primary)', fontFamily: 'var(--font-family)', fontWeight: 'var(--font-semibold)', letterSpacing: '0.3px', borderRadius: 'var(--radius-md)' }}
+          >
+            Mark as Paid
+          </button>
+        )}
 
         {/* Cleaning Request Button */}
         <button

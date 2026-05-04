@@ -1,6 +1,7 @@
 // restmentor/apps/web/src/pages/Order/OrderPage.tsx
 import { API_BASE } from '../../config';
 import { useState, useEffect, useRef } from 'react';
+import { io, Socket } from 'socket.io-client';
 import { useParams, useNavigate } from 'react-router-dom';
 import Header from '../../components/Header';
 import MenuBrowser from './components/MenuBrowser';
@@ -54,6 +55,7 @@ export default function OrderPage() {
   const [loadingGender, setLoadingGender] = useState<string | null>(null);
   const [suggestionsOpen, setSuggestionsOpen] = useState(false);
   const [activeSuggestionGender, setActiveSuggestionGender] = useState<string | null>(null);
+  const ignoringStatusChange = useRef(false);
 
   const user = JSON.parse(localStorage.getItem('user') || '{}');
 
@@ -61,6 +63,42 @@ export default function OrderPage() {
     loadSessionInfo();
     loadOrders();
     restoreSuggestions();
+
+    // ── WebSocket: redirect if table status changes ───────
+    let socketInstance: Socket | null = null;
+
+    const initSocket = () => {
+      let restaurantId = '';
+      try {
+        const restaurant = JSON.parse(localStorage.getItem('restaurant') || '{}');
+        restaurantId = restaurant?.id ?? '';
+      } catch { }
+
+      if (!restaurantId) return;
+
+      const socket = io(API_BASE || 'http://localhost:3001', {
+        query: { restaurantId },
+        transports: ['websocket'],
+      });
+      socketInstance = socket;
+      socketRef.current = socket;
+
+      socket.on('table:status_changed', async ({ tableId, newStatus }: { tableId: string; newStatus: string }) => {
+        if (ignoringStatusChange.current) return;
+        try {
+          const res = await fetch(`${API_BASE}/api/sessions/${sessionId}`, { credentials: 'include' });
+          if (!res.ok) return;
+          const data = await res.json();
+          if (data.session.table_id === tableId && (newStatus === 'open' || newStatus === 'cleaning')) {
+            navigate('/tables');
+          }
+        } catch { }
+      });
+    };
+
+    initSocket();
+
+    return () => { socketInstance?.disconnect(); };
   }, []);
 
   useEffect(() => {
@@ -141,12 +179,17 @@ export default function OrderPage() {
     if (!currentOrderId || !activeGender) return;
 
     try {
-      await fetch(`${API_BASE}/api/orders/${currentOrderId}/items`, {
+      const response = await fetch(`${API_BASE}/api/orders/${currentOrderId}/items`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
         body: JSON.stringify({ menuItemId, genderTarget: activeGender, quantity: 1 }),
       });
+
+      if (response.status === 409) {
+        navigate('/tables');
+        return;
+      }
 
       setHasPendingChanges(true);
       await loadOrders();
@@ -160,6 +203,7 @@ export default function OrderPage() {
   };
 
   const editTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
+  const socketRef = useRef<Socket | null>(null);
 
   const handleEditItem = (orderId: string, itemId: string, newQuantity: number) => {
     // Optimistic UI update
@@ -261,6 +305,7 @@ export default function OrderPage() {
       const sessionData = await sessionRes.json();
       const tableId = sessionData.session.table_id;
 
+      ignoringStatusChange.current = true;
       await fetch(`${API_BASE}/api/tables/${tableId}/status`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
@@ -271,6 +316,7 @@ export default function OrderPage() {
       navigate(`/tables/${tableId}/cleaning`);
     } catch {
       setError('Failed to send cleaning request');
+      ignoringStatusChange.current = false;
     }
   };
 

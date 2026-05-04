@@ -122,7 +122,23 @@ export async function orderRoutes(app: FastifyInstance) {
         });
       }
 
-const { menuItemId, genderTarget, quantity, notes, aiSuggested: clientAiSuggested } = parsed.data;
+      const { menuItemId, genderTarget, quantity, notes, aiSuggested: clientAiSuggested } = parsed.data;
+
+      // ── Validate session is still active ─────────────────────
+      const sessionCheck = await db.execute(
+        sql`SELECT t.status FROM orders o
+            JOIN table_sessions ts ON ts.id = o.session_id
+            JOIN tables t ON t.id = ts.table_id
+            WHERE o.id = ${orderId} LIMIT 1`
+      );
+      const tableStatus = sessionCheck.rows[0]?.status as string | undefined;
+      if (!tableStatus || tableStatus === 'open') {
+        return reply.status(409).send({
+          statusCode: 409,
+          error: 'Session Expired',
+          message: 'This table session is no longer active',
+        });
+      }
 
       // ── Verify aiSuggested server-side ───────────────────────
       // Client hint is accepted only if item exists in ai_suggestions for this order's session

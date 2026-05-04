@@ -121,10 +121,22 @@ export async function suggestionRoutes(app: FastifyInstance) {
 
   // ── POST /api/sessions/:sessionId/suggestions ────────────────
   // Called every time an item is added — tiny payload, fast response
+// ── POST /api/sessions/:sessionId/suggestions ────────────────
   app.post('/:sessionId/suggestions', async (request, reply) => {
     try {
-      const { db } = await getTenantDb(app, request);
+      const { db, decoded } = await getTenantDb(app, request);
       const { sessionId } = request.params as { sessionId: string };
+
+      // Validate session is still active
+      const sessionCheck = await db.execute(
+        sql`SELECT t.status FROM table_sessions ts
+            JOIN tables t ON t.id = ts.table_id
+            WHERE ts.id = ${sessionId} LIMIT 1`
+      );
+      const tableStatus = sessionCheck.rows[0]?.status as string | undefined;
+      if (!tableStatus || tableStatus === 'open') {
+        return reply.status(409).send({ error: 'Session no longer active' });
+      }
 
       const bodySchema = z.object({
         genderTarget: z.enum(['male', 'female', 'kid']),

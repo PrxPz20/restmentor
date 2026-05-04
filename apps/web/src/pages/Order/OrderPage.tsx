@@ -2,7 +2,7 @@
 import { API_BASE } from '../../config';
 import { useState, useEffect, useRef } from 'react';
 import { io, Socket } from 'socket.io-client';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, Navigate } from 'react-router-dom';
 import Header from '../../components/Header';
 import MenuBrowser from './components/MenuBrowser';
 import SuggestionsBrowser from './components/SuggestionsBrowser';
@@ -38,6 +38,7 @@ const GENDER_ICONS: Record<string, string> = {
 };
 
 export default function OrderPage() {
+  
   const { sessionId } = useParams<{ sessionId: string }>();
   const navigate = useNavigate();
   const [orders, setOrders] = useState<OrderData[]>([]);
@@ -56,6 +57,11 @@ export default function OrderPage() {
   const [suggestionsOpen, setSuggestionsOpen] = useState(false);
   const [activeSuggestionGender, setActiveSuggestionGender] = useState<string | null>(null);
   const ignoringStatusChange = useRef(false);
+
+// Guard — redirect if no valid session
+  if (!sessionId || sessionId === 'null') {
+    return <Navigate to="/tables" replace />;
+  }
 
   const user = JSON.parse(localStorage.getItem('user') || '{}');
 

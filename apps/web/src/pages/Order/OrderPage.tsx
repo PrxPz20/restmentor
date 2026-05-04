@@ -247,26 +247,8 @@ export default function OrderPage() {
     }
   };
 
-  const handleMarkAsPaid = async () => {
-    try {
-      const sessionRes = await fetch(`${API_BASE}/api/sessions/${sessionId}`, {
-        credentials: 'include',
-      });
-      if (!sessionRes.ok) return;
-      const sessionData = await sessionRes.json();
-      const tableId = sessionData.session.table_id;
-
-      await fetch(`${API_BASE}/api/tables/${tableId}/status`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ status: 'paid' }),
-      });
-
-      navigate(`/tables/${tableId}/cleaning`);
-    } catch {
-      setError('Failed to mark table as paid');
-    }
+  const handleMarkAsPaid = () => {
+    navigate(`/sessions/${sessionId}/confirm-payment`);
   };
 
   const handleCleaningRequest = async () => {

@@ -6,7 +6,7 @@ import TableConfigPage from './pages/TableConfig/TableConfigPage';
 import OrderPage from './pages/Order/OrderPage';
 import ConfirmationPage from './pages/Confirmation/ConfirmationPage';
 import CleaningPage from './pages/Cleaning/CleaningPage';
-
+import ConfirmPaymentPage from './pages/ConfirmPayment/ConfirmPaymentPage';
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const isLoggedIn = localStorage.getItem('isLoggedIn');
   if (!isLoggedIn) return <Navigate to="/login" replace />;
@@ -23,6 +23,7 @@ function App() {
         <Route path="/sessions/:sessionId/order" element={<ProtectedRoute><OrderPage /></ProtectedRoute>} />
         <Route path="/sessions/:sessionId/confirmed" element={<ProtectedRoute><ConfirmationPage /></ProtectedRoute>} />
         <Route path="/tables/:tableId/cleaning" element={<ProtectedRoute><CleaningPage /></ProtectedRoute>} />
+        <Route path="/sessions/:sessionId/confirm-payment" element={<ProtectedRoute><ConfirmPaymentPage /></ProtectedRoute>} />
         <Route path="/" element={<Navigate to="/tables" replace />} />
       </Routes>
     </BrowserRouter>

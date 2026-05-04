@@ -95,6 +95,26 @@ export const aiSuggestions = pgTable('ai_suggestions', {
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 });
 
+// ── Restaurant Gender Stats ─────────────────────────────
+export const restaurantGenderStats = pgTable('restaurant_gender_stats', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  totalMales: integer('total_males').notNull().default(0),
+  totalFemales: integer('total_females').notNull().default(0),
+  totalKids: integer('total_kids').notNull().default(0),
+  totalGuests: integer('total_guests').notNull().default(0),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+});
+
+// ── Restaurant Item Stats ───────────────────────────────
+export const restaurantItemStats = pgTable('restaurant_item_stats', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  menuItemId: uuid('menu_item_id').notNull().references(() => menuItems.id),
+  genderTarget: varchar('gender_target', { length: 10 }).notNull(),
+  totalQuantity: integer('total_quantity').notNull().default(0),
+  aiSuggestedQuantity: integer('ai_suggested_quantity').notNull().default(0),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+});
+
 // ── Audit Log ───────────────────────────────────────────
 export const auditLog = pgTable('audit_log', {
   id: uuid('id').primaryKey().defaultRandom(),

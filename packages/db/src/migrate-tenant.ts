@@ -127,6 +127,47 @@ async function migrateTenant() {
   console.log('  ✓ ai_suggestions');
 
   await db.execute(sql`
+    CREATE TABLE IF NOT EXISTS restaurant_gender_stats (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      total_males INTEGER NOT NULL DEFAULT 0,
+      total_females INTEGER NOT NULL DEFAULT 0,
+      total_kids INTEGER NOT NULL DEFAULT 0,
+      total_guests INTEGER NOT NULL DEFAULT 0,
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+    )
+  `);
+  console.log('  ✓ restaurant_gender_stats');
+
+  // Ensure the single stats row exists
+  await db.execute(sql`
+    INSERT INTO restaurant_gender_stats (total_males, total_females, total_kids, total_guests)
+    SELECT 0, 0, 0, 0
+    WHERE NOT EXISTS (SELECT 1 FROM restaurant_gender_stats)
+  `);
+  console.log('  ✓ restaurant_gender_stats seed row');
+
+  await db.execute(sql`
+    CREATE TABLE IF NOT EXISTS restaurant_item_stats (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      menu_item_id UUID NOT NULL REFERENCES menu_items(id),
+      gender_target VARCHAR(10) NOT NULL,
+      total_quantity INTEGER NOT NULL DEFAULT 0,
+      ai_suggested_quantity INTEGER NOT NULL DEFAULT 0,
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+      UNIQUE(menu_item_id, gender_target)
+    )
+  `);
+  console.log('  ✓ restaurant_item_stats');
+
+  await db.execute(sql`
+    CREATE INDEX IF NOT EXISTS idx_item_stats_menu_item ON restaurant_item_stats(menu_item_id)
+  `);
+  await db.execute(sql`
+    CREATE INDEX IF NOT EXISTS idx_item_stats_gender ON restaurant_item_stats(gender_target)
+  `);
+  console.log('  ✓ indexes on restaurant_item_stats');
+
+  await db.execute(sql`
     CREATE TABLE IF NOT EXISTS audit_log (
       id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
       user_id UUID NOT NULL,

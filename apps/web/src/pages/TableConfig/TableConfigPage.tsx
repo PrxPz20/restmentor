@@ -198,6 +198,22 @@ export default function TableConfigPage() {
             'Complete'
           )}
         </button>
+
+
+<button
+          onClick={() => navigate('/tables')}
+          className="w-full py-2 bg-transparent border-none cursor-pointer hover:opacity-70 transition-opacity mb-[36px] mt-[4px]"
+          style={{ color: 'var(--color-primary)', fontFamily: 'var(--font-family)', fontSize: '14px', fontWeight: 'var(--font-medium)', opacity: 0.5, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="15 18 9 12 15 6" />
+          </svg>
+          Back
+          <span style={{ width: '14px', flexShrink: 0 }} />
+        </button>
+
+
+
       </div>
     </div>
   );

@@ -200,7 +200,7 @@ export default function TableConfigPage() {
         </button>
 
 
-<button
+        <button
           onClick={() => navigate('/tables')}
           className="w-full py-2 bg-transparent border-none cursor-pointer hover:opacity-70 transition-opacity mb-[36px] mt-[4px]"
           style={{ color: 'var(--color-primary)', fontFamily: 'var(--font-family)', fontSize: '14px', fontWeight: 'var(--font-medium)', opacity: 0.5, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}

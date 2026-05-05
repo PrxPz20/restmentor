@@ -38,7 +38,7 @@ const GENDER_ICONS: Record<string, string> = {
 };
 
 export default function OrderPage() {
-  
+
   const { sessionId } = useParams<{ sessionId: string }>();
   const navigate = useNavigate();
   const [orders, setOrders] = useState<OrderData[]>([]);
@@ -58,7 +58,7 @@ export default function OrderPage() {
   const [activeSuggestionGender, setActiveSuggestionGender] = useState<string | null>(null);
   const ignoringStatusChange = useRef(false);
 
-// Guard — redirect if no valid session
+  // Guard — redirect if no valid session
   if (!sessionId || sessionId === 'null') {
     return <Navigate to="/tables" replace />;
   }
@@ -466,9 +466,16 @@ export default function OrderPage() {
         {/* Subheader */}
         <div className="flex items-center justify-between mb-2">
           <span style={{ color: 'var(--color-primary)', fontSize: 'var(--text-sm)', fontWeight: 'var(--font-semibold)' }}>Order</span>
-          <span style={{ color: 'var(--color-primary)', fontSize: 'var(--text-sm)', fontWeight: 'var(--font-light)', opacity: 0.5 }}>
+          <button
+            onClick={() => navigate('/tables')}
+            className="flex items-center gap-1 bg-transparent border-none cursor-pointer hover:opacity-70 transition-opacity active:opacity-50"
+            style={{ color: 'var(--color-primary)', fontFamily: 'var(--font-family)', fontSize: 'var(--text-sm)', fontWeight: 'var(--font-light)', opacity: 0.5, padding: 0 }}
+          >
             {tableLabel}
-          </span>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="9 18 15 12 9 6" />
+            </svg>
+          </button>
         </div>
 
         {/* TO SHARE */}

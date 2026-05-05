@@ -6,6 +6,7 @@ import Header from '../../components/Header';
 import menIcon from '../../assets/men.png';
 import femaleIcon from '../../assets/female.png';
 import kidIcon from '../../assets/kid.png';
+import moneyImg from '../../assets/money.svg';
 
 interface SessionInfo {
   table_id: string;
@@ -117,39 +118,46 @@ export default function ConfirmPaymentPage() {
     <div className="min-h-screen" style={{ backgroundColor: 'var(--color-background)', fontFamily: 'var(--font-family)' }}>
       <Header userName={user.name} />
 
-      <div style={{ paddingLeft: 'var(--page-padding)', paddingRight: 'var(--page-padding)', paddingTop: 'var(--section-top)' }}>
+      <div className="flex flex-col items-center" style={{ paddingLeft: 'var(--page-padding)', paddingRight: 'var(--page-padding)', paddingTop: 'var(--section-top)' }}>
 
-        {/* Subheader */}
-        <div className="flex items-center justify-between mb-4">
-          <span style={{ color: 'var(--color-primary)', fontSize: 'var(--text-sm)', fontWeight: 'var(--font-semibold)' }}>Confirm Payment</span>
-          <span style={{ color: 'var(--color-primary)', fontSize: 'var(--text-sm)', fontWeight: 'var(--font-light)', opacity: 0.5 }}>{tableLabel}</span>
-        </div>
+        {/* Title */}
+        <span style={{ color: 'var(--color-primary)', fontSize: '20px', fontWeight: 'var(--font-bold)', letterSpacing: '0.5px', marginBottom: '8px' }}>
+          CONFIRM PAYMENT
+        </span>
 
-        {/* Guest Composition */}
-        <div className="mb-4 p-4" style={{ backgroundColor: 'var(--color-white)', borderRadius: 'var(--radius-sm)', boxShadow: 'var(--shadow-card)' }}>
+        {/* Money Illustration */}
+        <img src={moneyImg} alt="Payment illustration" className="w-full max-w-[320px] h-auto" style={{ marginTop: '16px', marginBottom: '16px' }} />
+
+        {/* Subtitle */}
+        <span style={{ color: 'var(--color-primary)', fontSize: '15px', fontWeight: 'var(--font-semibold)', textAlign: 'center', lineHeight: 1.4, marginBottom: '24px' }}>
+          {tableLabel}
+        </span>
+
+{/* Guests + Order Summary — combined box */}
+        <div className="w-full mb-4 p-4" style={{ backgroundColor: 'var(--color-white)', borderRadius: 'var(--radius-sm)', boxShadow: 'var(--shadow-card)' }}>
+          
           <span style={{ color: 'var(--color-primary)', fontSize: 'var(--text-xs)', fontWeight: 'var(--font-bold)', letterSpacing: '0.5px' }}>GUESTS</span>
           <div style={{ height: '1px', backgroundColor: 'var(--color-separator)', margin: '10px 0' }} />
-          <div className="grid grid-cols-3 gap-3">
-            {[
-              { icon: menIcon, label: 'Male', count: session?.guest_males ?? 0 },
-              { icon: femaleIcon, label: 'Female', count: session?.guest_females ?? 0 },
-              { icon: kidIcon, label: 'Kid', count: session?.guest_kids ?? 0 },
-            ].map((g) => (
-              <div key={g.label} className="flex flex-col items-center justify-center py-4" style={{ backgroundColor: 'var(--color-green)', borderRadius: 'var(--radius-sm)' }}>
-                <img src={g.icon} alt={g.label} style={{ width: '28px', height: '28px', objectFit: 'contain', marginBottom: '6px' }} />
-                <span style={{ color: 'var(--color-primary)', fontSize: 'var(--text-md)', fontWeight: 'var(--font-bold)' }}>{g.count}</span>
-                <span style={{ color: 'var(--color-primary)', fontSize: '11px', fontWeight: 'var(--font-light)', opacity: 0.6 }}>{g.label}</span>
+          {[
+            { icon: menIcon, label: 'Male', count: session?.guest_males ?? 0 },
+            { icon: femaleIcon, label: 'Female', count: session?.guest_females ?? 0 },
+            { icon: kidIcon, label: 'Kid', count: session?.guest_kids ?? 0 },
+          ].filter(g => g.count > 0).map((g, i, arr) => (
+            <div key={g.label} className="flex items-center justify-between py-2" style={{ borderBottom: i < arr.length - 1 ? '1px solid var(--color-separator)' : 'none' }}>
+              <div className="flex items-center gap-2">
+                <img src={g.icon} alt={g.label} style={{ width: '20px', height: '20px', objectFit: 'contain', opacity: 0.7 }} />
+                <span style={{ color: 'var(--color-primary)', fontSize: 'var(--text-sm)', fontWeight: 'var(--font-light)' }}>{g.label}</span>
               </div>
-            ))}
-          </div>
-          <div className="flex justify-between mt-3 px-1">
+              <span style={{ color: 'var(--color-primary)', fontSize: 'var(--text-sm)', fontWeight: 'var(--font-semibold)' }}>{g.count}</span>
+            </div>
+          ))}
+          <div className="flex justify-between pt-2">
             <span style={{ color: 'var(--color-primary)', fontSize: 'var(--text-sm)', fontWeight: 'var(--font-light)', opacity: 0.5 }}>Total guests</span>
             <span style={{ color: 'var(--color-primary)', fontSize: 'var(--text-sm)', fontWeight: 'var(--font-semibold)' }}>{totalGuests}</span>
           </div>
-        </div>
 
-        {/* Order Summary */}
-        <div className="mb-4 p-4" style={{ backgroundColor: 'var(--color-white)', borderRadius: 'var(--radius-sm)', boxShadow: 'var(--shadow-card)' }}>
+          <div style={{ height: '1px', backgroundColor: 'var(--color-separator)', margin: '16px 0 10px' }} />
+
           <span style={{ color: 'var(--color-primary)', fontSize: 'var(--text-xs)', fontWeight: 'var(--font-bold)', letterSpacing: '0.5px' }}>ORDER SUMMARY</span>
           <div style={{ height: '1px', backgroundColor: 'var(--color-separator)', margin: '10px 0' }} />
           <div className="flex justify-between py-2">
@@ -169,7 +177,7 @@ export default function ConfirmPaymentPage() {
         </div>
 
         {/* Warning */}
-        <div className="mb-6 p-4 flex items-start gap-3" style={{ backgroundColor: 'var(--color-paid)', borderRadius: 'var(--radius-sm)' }}>
+        <div className="w-full mb-6 p-4 flex items-start gap-3" style={{ backgroundColor: 'var(--color-paid)', borderRadius: 'var(--radius-sm)' }}>
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--color-primary)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, marginTop: '1px' }}>
             <circle cx="12" cy="12" r="10" />
             <line x1="12" y1="8" x2="12" y2="12" />
@@ -197,6 +205,7 @@ export default function ConfirmPaymentPage() {
           disabled={isConfirming}
           className="w-full h-[52px] text-base flex items-center justify-center border-none mb-[5px] transition-opacity"
           style={{
+            width: '100%',
             backgroundColor: 'var(--color-primary)',
             color: 'var(--color-white)',
             fontFamily: 'var(--font-family)',

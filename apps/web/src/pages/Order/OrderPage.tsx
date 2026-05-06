@@ -430,7 +430,7 @@ export default function OrderPage() {
     }
   };
 
-const fetchSuggestions = async (genderTarget: string, lastAddedItemName: string, isRetry = false) => {
+  const fetchSuggestions = async (genderTarget: string, lastAddedItemName: string, isRetry = false) => {
     if (!sessionId || genderTarget === 'shared') return;
     setLoadingGenders(prev => new Set(prev).add(genderTarget));
     try {
@@ -458,7 +458,7 @@ const fetchSuggestions = async (genderTarget: string, lastAddedItemName: string,
           [genderTarget]: suggestions,
         }));
       }
-} catch {
+    } catch {
       // fail silently — suggestions are a bonus
     } finally {
       setLoadingGenders(prev => { const next = new Set(prev); next.delete(genderTarget); return next; });
@@ -741,7 +741,7 @@ const fetchSuggestions = async (genderTarget: string, lastAddedItemName: string,
                         €{items.reduce((sum, i) => sum + Number(i.menuItemPrice) * i.quantity, 0).toFixed(2)}
                       </span>
                     </div>
-<div className="flex items-center gap-3 mb-3">
+                    <div className="flex items-center gap-3 mb-3">
                       <img src={genderIcon} alt={genderLabel} style={{ width: '28px', height: '28px', objectFit: 'contain' }} />
                       <span style={{ color: 'var(--color-primary)', fontSize: 'var(--text-md)', fontWeight: 'var(--font-semibold)' }}>{genderLabel}</span>
                     </div>
@@ -890,7 +890,7 @@ const fetchSuggestions = async (genderTarget: string, lastAddedItemName: string,
                   </div>
                 );
               })}
-            {/* Shared + Grand Total */}
+              {/* Shared + Grand Total */}
               {(() => {
                 const sharedTotal = sharedItems.reduce((sum, i) => sum + Number(i.menuItemPrice) * i.quantity, 0);
                 const genderedTotal = genderedItems.reduce((sum, i) => sum + Number(i.menuItemPrice) * i.quantity, 0);

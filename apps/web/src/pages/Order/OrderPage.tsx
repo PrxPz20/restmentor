@@ -53,10 +53,21 @@ export default function OrderPage() {
   const [hasPendingChanges, setHasPendingChanges] = useState(false);
   const [hasModifiedOrders, setHasModifiedOrders] = useState(false);
   const [suggestionsByGender, setSuggestionsByGender] = useState<Record<string, any[]>>({});
-  const [loadingGender, setLoadingGender] = useState<string | null>(null);
+  const [loadingGenders, setLoadingGenders] = useState<Set<string>>(new Set());
   const [suggestionsOpen, setSuggestionsOpen] = useState(false);
   const [activeSuggestionGender, setActiveSuggestionGender] = useState<string | null>(null);
+  const [guestEditorOpen, setGuestEditorOpen] = useState(false);
+  const [guestCounts, setGuestCounts] = useState({ males: 0, females: 0, kids: 0 });
+  const [localCounts, setLocalCounts] = useState({ males: 0, females: 0, kids: 0 });
+  const [isUpdatingGuests, setIsUpdatingGuests] = useState(false);
   const ignoringStatusChange = useRef(false);
+
+  const updateLocalCount = (key: string, delta: number) => {
+    setLocalCounts(prev => ({
+      ...prev,
+      [key]: Math.max(0, prev[key as keyof typeof prev] + delta),
+    }));
+  };
 
   // Guard — redirect if no valid session
   if (!sessionId || sessionId === 'null') {
@@ -121,12 +132,18 @@ export default function OrderPage() {
       });
       if (!sessionRes.ok) return;
       const sessionData = await sessionRes.json();
+      const s = sessionData.session;
+      setGuestCounts({
+        males: s.guest_males ?? 0,
+        females: s.guest_females ?? 0,
+        kids: s.guest_kids ?? 0,
+      });
       const tablesRes = await fetch(`${API_BASE}/api/tables`, {
         credentials: 'include',
       });
       if (!tablesRes.ok) return;
       const tablesData = await tablesRes.json();
-      const table = tablesData.tables.find((t: any) => t.id === sessionData.session.table_id);
+      const table = tablesData.tables.find((t: any) => t.id === s.table_id);
       if (table) setTableLabel(table.label);
     } catch {
       // fail silently
@@ -347,6 +364,55 @@ export default function OrderPage() {
     }
   };
 
+  const handleConfirmGuests = async (newCounts: { males: number; females: number; kids: number }) => {
+    if (!sessionId) return;
+    setIsUpdatingGuests(true);
+    try {
+      // Update guest counts
+      await fetch(`${API_BASE}/api/sessions/${sessionId}/guests`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          guestMales: newCounts.males,
+          guestFemales: newCounts.females,
+          guestKids: newCounts.kids,
+        }),
+      });
+
+      // Re-init AI with new counts
+      await fetch(`${API_BASE}/api/sessions/${sessionId}/ai-init`, {
+        method: 'POST',
+        credentials: 'include',
+      });
+
+      // Clear stale suggestions
+      await fetch(`${API_BASE}/api/sessions/${sessionId}/suggestions`, {
+        method: 'DELETE',
+        credentials: 'include',
+      });
+      setSuggestionsByGender({});
+
+      // Update local counts
+      setGuestCounts(newCounts);
+      setGuestEditorOpen(false);
+
+      // Fire background suggestions for genders that already have items
+      const gendersWithItems = Object.keys(groupedByGender);
+      gendersWithItems.forEach(gender => {
+        const items = groupedByGender[gender];
+        if (items && items.length > 0) {
+          const lastItem = items[items.length - 1];
+          fetchSuggestions(gender, lastItem.menuItemName);
+        }
+      });
+    } catch {
+      setError('Failed to update guests');
+    } finally {
+      setIsUpdatingGuests(false);
+    }
+  };
+
   const restoreSuggestions = async () => {
     if (!sessionId) return;
     try {
@@ -364,9 +430,9 @@ export default function OrderPage() {
     }
   };
 
-  const fetchSuggestions = async (genderTarget: string, lastAddedItemName: string, isRetry = false) => {
+const fetchSuggestions = async (genderTarget: string, lastAddedItemName: string, isRetry = false) => {
     if (!sessionId || genderTarget === 'shared') return;
-    setLoadingGender(genderTarget);
+    setLoadingGenders(prev => new Set(prev).add(genderTarget));
     try {
       const response = await fetch(`${API_BASE}/api/sessions/${sessionId}/suggestions`, {
         method: 'POST',
@@ -383,7 +449,6 @@ export default function OrderPage() {
             method: 'POST',
             credentials: 'include',
           });
-          setLoadingGender(genderTarget);
           await fetchSuggestions(genderTarget, lastAddedItemName, true);
           return;
         }
@@ -393,10 +458,10 @@ export default function OrderPage() {
           [genderTarget]: suggestions,
         }));
       }
-    } catch {
+} catch {
       // fail silently — suggestions are a bonus
     } finally {
-      setLoadingGender(null);
+      setLoadingGenders(prev => { const next = new Set(prev); next.delete(genderTarget); return next; });
     }
   };
 
@@ -434,6 +499,66 @@ export default function OrderPage() {
     ? String.fromCharCode(65 + sortedGenderKeys.indexOf(activeSuggestionGender))
     : 'A';
 
+  const totalLocal = localCounts.males + localCounts.females + localCounts.kids;
+
+  const guestEditorOverlay = guestEditorOpen ? (
+    <div className="fixed inset-0 flex flex-col" style={{ zIndex: 50, fontFamily: 'var(--font-family)' }}>
+      <div className="shrink-0" style={{ paddingTop: 'calc(var(--section-top) + 60px)', backgroundColor: 'rgba(238, 238, 238, 0.6)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)' }} />
+      <div className="flex-1 flex flex-col overflow-hidden" style={{ backgroundColor: 'var(--color-white)', borderTopLeftRadius: 'var(--radius-lg)', borderTopRightRadius: 'var(--radius-lg)' }}>
+        <div className="flex items-center justify-between shrink-0" style={{ paddingLeft: 'var(--page-padding)', paddingRight: 'var(--page-padding)', paddingTop: '20px', paddingBottom: '16px' }}>
+          <span style={{ color: 'var(--color-primary)', fontSize: '12px', fontWeight: 'var(--font-semibold)', letterSpacing: '0.5px' }}>EDIT GUESTS</span>
+          <span style={{ color: 'var(--color-primary)', fontSize: '12px', fontWeight: 'var(--font-semibold)', letterSpacing: '0.5px', opacity: 0.5 }}>{tableLabel}</span>
+        </div>
+        <div className="flex-1 overflow-y-auto" style={{ paddingLeft: 'var(--page-padding)', paddingRight: 'var(--page-padding)' }}>
+          <div style={{ border: '1px solid var(--color-primary)', borderRadius: 'var(--radius-sm)', overflow: 'hidden' }}>
+            {[
+              { key: 'males', label: 'Male', icon: menIcon },
+              { key: 'females', label: 'Female', icon: femaleIcon },
+              { key: 'kids', label: 'Kid', icon: kidIcon },
+            ].map((g, i, arr) => (
+              <div key={g.key} style={{ padding: '16px', borderBottom: i < arr.length - 1 ? '1px solid var(--color-separator)' : 'none' }}>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <img src={g.icon} alt={g.label} style={{ width: '24px', height: '24px', objectFit: 'contain' }} />
+                    <span style={{ color: 'var(--color-primary)', fontSize: '12px', fontWeight: 'var(--font-semibold)', textTransform: 'uppercase' }}>{g.label}</span>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <button onClick={() => updateLocalCount(g.key, -1)} className="flex items-center justify-center border-none cursor-pointer" style={{ width: '32px', height: '32px', borderRadius: '50%', backgroundColor: 'var(--color-green)', color: 'var(--color-primary)', fontSize: '18px', fontWeight: 'var(--font-regular)', fontFamily: 'var(--font-family)' }}>−</button>
+                    <span style={{ color: 'var(--color-primary)', fontSize: '16px', fontWeight: 'var(--font-regular)', minWidth: '20px', textAlign: 'center' }}>{localCounts[g.key as keyof typeof localCounts]}</span>
+                    <button onClick={() => updateLocalCount(g.key, 1)} className="flex items-center justify-center border-none cursor-pointer" style={{ width: '32px', height: '32px', borderRadius: '50%', backgroundColor: 'var(--color-green)', color: 'var(--color-primary)', fontSize: '18px', fontWeight: 'var(--font-regular)', fontFamily: 'var(--font-family)' }}>+</button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+        <div style={{ paddingLeft: 'var(--page-padding)', paddingRight: 'var(--page-padding)', paddingTop: '16px', paddingBottom: '36px' }}>
+          <button
+            onClick={() => handleConfirmGuests(localCounts)}
+            disabled={isUpdatingGuests || totalLocal === 0}
+            className="w-full h-[52px] text-base flex items-center justify-center border-none mb-[4px] transition-opacity"
+            style={{ backgroundColor: 'var(--color-primary)', color: 'var(--color-white)', fontFamily: 'var(--font-family)', fontWeight: 'var(--font-semibold)', letterSpacing: '0.3px', borderRadius: 'var(--radius-md)', boxShadow: totalLocal > 0 ? 'var(--shadow-button)' : 'none', opacity: totalLocal > 0 && !isUpdatingGuests ? 1 : 0.35, cursor: totalLocal > 0 && !isUpdatingGuests ? 'pointer' : 'not-allowed' }}
+          >
+            {isUpdatingGuests ? (
+              <div className="w-[22px] h-[22px] border-[2.5px] border-white/30 border-t-white rounded-full animate-spin" />
+            ) : 'Confirm Guests'}
+          </button>
+          <button
+            onClick={() => setGuestEditorOpen(false)}
+            className="w-full py-2 bg-transparent border-none cursor-pointer hover:opacity-70 transition-opacity flex items-center justify-center gap-1.5"
+            style={{ color: 'var(--color-primary)', fontFamily: 'var(--font-family)', fontSize: '14px', fontWeight: 'var(--font-medium)', opacity: 0.5 }}
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="15 18 9 12 15 6" />
+            </svg>
+            Cancel
+            <span style={{ width: '14px', flexShrink: 0 }} />
+          </button>
+        </div>
+      </div>
+    </div>
+  ) : null;
+
   const suggestionsOverlay = suggestionsOpen && activeSuggestionGender ? (
     <SuggestionsBrowser
       suggestions={suggestionsByGender[activeSuggestionGender] ?? []}
@@ -456,6 +581,7 @@ export default function OrderPage() {
   return (
     <div className="min-h-screen" style={{ backgroundColor: 'var(--color-background)', fontFamily: 'var(--font-family)' }}>
 
+      {guestEditorOverlay}
       {suggestionsOverlay}
       {menuOverlay}
 
@@ -465,7 +591,16 @@ export default function OrderPage() {
 
         {/* Subheader */}
         <div className="flex items-center justify-between mb-2">
-          <span style={{ color: 'var(--color-primary)', fontSize: 'var(--text-sm)', fontWeight: 'var(--font-semibold)' }}>Order</span>
+          <button
+            onClick={() => { setLocalCounts({ ...guestCounts }); setGuestEditorOpen(true); }}
+            className="flex items-center gap-1.5 bg-transparent border-none cursor-pointer hover:opacity-70 transition-opacity active:opacity-50 p-0"
+          >
+            <span style={{ color: 'var(--color-primary)', fontSize: 'var(--text-sm)', fontWeight: 'var(--font-semibold)' }}>Order</span>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--color-primary)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ opacity: 0.4 }}>
+              <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+              <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+            </svg>
+          </button>
           <button
             onClick={() => navigate('/tables')}
             className="flex items-center gap-1 bg-transparent border-none cursor-pointer hover:opacity-70 transition-opacity active:opacity-50"
@@ -703,7 +838,7 @@ export default function OrderPage() {
                       const groupSuggestions = (suggestionsByGender[gender] ?? []).filter(
                         (s: any) => !orderedMenuItemIds.has(s.itemId)
                       );
-                      const isLoading = loadingGender === gender;
+                      const isLoading = loadingGenders.has(gender);
                       if (groupSuggestions.length === 0 && !isLoading) return null;
                       return (
                         <div

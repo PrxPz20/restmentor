@@ -76,6 +76,45 @@ export async function tableSessionRoutes(app: FastifyInstance) {
 // Routes under /api/sessions prefix
 export async function sessionRoutes(app: FastifyInstance) {
 
+  // ── PATCH /api/sessions/:id/guests ──────────────────
+  app.patch('/:id/guests', async (request, reply) => {
+    try {
+      const { db } = await getTenantDb(app, request);
+      const { id } = request.params as { id: string };
+
+      const schema = z.object({
+        guestMales: z.number().min(0),
+        guestFemales: z.number().min(0),
+        guestKids: z.number().min(0),
+      }).refine(d => d.guestMales + d.guestFemales + d.guestKids > 0, {
+        message: 'At least one guest is required',
+      });
+
+      const parsed = schema.safeParse(request.body);
+      if (!parsed.success) {
+        return reply.status(400).send({
+          statusCode: 400,
+          error: 'Bad Request',
+          message: parsed.error.errors[0]?.message ?? 'Invalid input',
+        });
+      }
+
+      const { guestMales, guestFemales, guestKids } = parsed.data;
+
+      await db.execute(
+        sql`UPDATE table_sessions SET
+            guest_males = ${guestMales},
+            guest_females = ${guestFemales},
+            guest_kids = ${guestKids}
+            WHERE id = ${id}`
+      );
+
+      return reply.send({ success: true, guestMales, guestFemales, guestKids });
+    } catch (err: any) {
+      return handleRouteError(err, reply, app, 'Failed to update guests');
+    }
+  });
+
   // ── GET /api/sessions/:id ───────────────────────────
   app.get('/:id', async (request, reply) => {
     try {

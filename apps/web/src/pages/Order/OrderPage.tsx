@@ -733,12 +733,15 @@ const fetchSuggestions = async (genderTarget: string, lastAddedItemName: string,
                     {groupIndex > 0 && (
                       <div style={{ height: '1px', backgroundColor: 'var(--color-separator)', marginBottom: '10px', marginTop: '16px' }} />
                     )}
-                    <div className="mb-3">
+                    <div className="flex items-center justify-between mb-3">
                       <span style={{ color: 'var(--color-primary)', fontSize: 'var(--text-xs)', fontWeight: 'var(--font-bold)', letterSpacing: '0.5px' }}>
                         GROUP {groupLetter}
                       </span>
+                      <span style={{ color: 'var(--color-primary)', fontSize: 'var(--text-xs)', fontWeight: 'var(--font-light)', opacity: 0.3 }}>
+                        €{items.reduce((sum, i) => sum + Number(i.menuItemPrice) * i.quantity, 0).toFixed(2)}
+                      </span>
                     </div>
-                    <div className="flex items-center gap-3 mb-3">
+<div className="flex items-center gap-3 mb-3">
                       <img src={genderIcon} alt={genderLabel} style={{ width: '28px', height: '28px', objectFit: 'contain' }} />
                       <span style={{ color: 'var(--color-primary)', fontSize: 'var(--text-md)', fontWeight: 'var(--font-semibold)' }}>{genderLabel}</span>
                     </div>
@@ -887,6 +890,27 @@ const fetchSuggestions = async (genderTarget: string, lastAddedItemName: string,
                   </div>
                 );
               })}
+            {/* Shared + Grand Total */}
+              {(() => {
+                const sharedTotal = sharedItems.reduce((sum, i) => sum + Number(i.menuItemPrice) * i.quantity, 0);
+                const genderedTotal = genderedItems.reduce((sum, i) => sum + Number(i.menuItemPrice) * i.quantity, 0);
+                const grandTotal = sharedTotal + genderedTotal;
+                if (grandTotal === 0) return null;
+                return (
+                  <div style={{ marginTop: '16px', borderTop: '1px solid var(--color-separator)', paddingTop: '12px' }}>
+                    {sharedTotal > 0 && (
+                      <div className="flex items-center justify-between mb-2">
+                        <span style={{ color: 'var(--color-primary)', fontSize: 'var(--text-sm)', fontWeight: 'var(--font-light)', opacity: 0.5 }}>Shared</span>
+                        <span style={{ color: 'var(--color-primary)', fontSize: 'var(--text-sm)', fontWeight: 'var(--font-light)', opacity: 0.5 }}>€{sharedTotal.toFixed(2)}</span>
+                      </div>
+                    )}
+                    <div className="flex items-center justify-between">
+                      <span style={{ color: 'var(--color-primary)', fontSize: 'var(--text-sm)', fontWeight: 'var(--font-semibold)' }}>Total</span>
+                      <span style={{ color: 'var(--color-primary)', fontSize: 'var(--text-sm)', fontWeight: 'var(--font-semibold)' }}>€{grandTotal.toFixed(2)}</span>
+                    </div>
+                  </div>
+                );
+              })()}
             </div>
           )}
         </div>

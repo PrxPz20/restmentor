@@ -568,13 +568,23 @@ export default function OrderPage() {
     />
   ) : null;
 
+  const genderItems: Record<string, number> = activeGender && activeGender !== 'shared'
+    ? allItems
+      .filter(i => i.genderTarget === activeGender)
+      .reduce((acc, i) => ({ ...acc, [i.menuItemId]: (acc[i.menuItemId] ?? 0) + i.quantity }), {} as Record<string, number>)
+    : activeGender === 'shared'
+      ? allItems
+        .filter(i => i.genderTarget === 'shared')
+        .reduce((acc, i) => ({ ...acc, [i.menuItemId]: (acc[i.menuItemId] ?? 0) + i.quantity }), {} as Record<string, number>)
+      : {};
+
   const menuOverlay = menuOpen && activeGender ? (
     <MenuBrowser
       activeGender={activeGender}
       onSelectItem={(id, name) => handleAddItem(id, name)}
       onClose={() => { setMenuOpen(false); setActiveGender(null); }}
       onSwitchGender={(g) => setActiveGender(g)}
-      addedItemIds={allItems.map(i => i.menuItemId)}
+      genderItems={genderItems}
     />
   ) : null;
 

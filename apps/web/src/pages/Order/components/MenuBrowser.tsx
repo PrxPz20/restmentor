@@ -28,7 +28,7 @@ interface MenuBrowserProps {
   onSelectItem: (menuItemId: string, menuItemName: string) => void;
   onClose: () => void;
   onSwitchGender: (gender: GenderTarget) => void;
-  addedItemIds: string[];
+  genderItems: Record<string, number>;
 }
 
 const GENDER_CONFIG = [
@@ -37,7 +37,7 @@ const GENDER_CONFIG = [
   { key: 'kid' as GenderTarget, label: 'Kid', icon: kidIcon },
 ];
 
-export default function MenuBrowser({ activeGender, onSelectItem, onClose, onSwitchGender, addedItemIds }: MenuBrowserProps) {
+export default function MenuBrowser({ activeGender, onSelectItem, onClose, onSwitchGender, genderItems }: MenuBrowserProps) {
   const [menu, setMenu] = useState<MenuCategoryData[]>([]);
   const [expandedCategory, setExpandedCategory] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -64,7 +64,7 @@ export default function MenuBrowser({ activeGender, onSelectItem, onClose, onSwi
     }
   };
 
-const handleItemTap = (itemId: string, itemName: string) => {
+  const handleItemTap = (itemId: string, itemName: string) => {
     onSelectItem(itemId, itemName);
   };
 
@@ -224,7 +224,7 @@ const handleItemTap = (itemId: string, itemName: string) => {
                       style={{
                         fontFamily: 'var(--font-family)',
                         borderBottom: index < results.length - 1 ? '1px solid var(--color-separator)' : 'none',
-                        backgroundColor: addedItemIds.includes(item.id) ? 'var(--color-green)' : 'transparent',
+                        backgroundColor: genderItems[item.id] ? 'var(--color-green)' : 'transparent',
                       }}
                     >
                       <div className="flex flex-col">
@@ -232,10 +232,10 @@ const handleItemTap = (itemId: string, itemName: string) => {
                         <span style={{ color: 'var(--color-primary)', fontSize: '11px', fontWeight: 'var(--font-light)', opacity: 0.4, marginTop: '2px' }}>{item.categoryName}</span>
                       </div>
                       <div className="flex items-center gap-2" style={{ flexShrink: 0, marginLeft: '16px' }}>
-                        {addedItemIds.includes(item.id) && (
-                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--color-primary)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                            <polyline points="20 6 9 17 4 12" />
-                          </svg>
+                        {genderItems[item.id] && (
+                          <span style={{ backgroundColor: 'var(--color-primary)', color: 'var(--color-white)', borderRadius: '50%', width: '18px', height: '18px', fontSize: '10px', fontWeight: 'var(--font-semibold)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                            {genderItems[item.id]}
+                          </span>
                         )}
                         <span style={{ color: 'var(--color-primary)', fontSize: 'var(--text-sm)', fontWeight: 'var(--font-regular)' }}>€{Number(item.price).toFixed(2)}</span>
                       </div>
@@ -278,8 +278,8 @@ const handleItemTap = (itemId: string, itemName: string) => {
                         style={{
                           fontFamily: 'var(--font-family)',
                           borderBottom: index < category.items.length - 1 ? '1px solid var(--color-separator)' : 'none',
-                          backgroundColor: addedItemIds.includes(item.id) ? 'var(--color-green)' : 'transparent',
-                          borderRadius: addedItemIds.includes(item.id) ? 'var(--radius-sm)' : '0',
+                          backgroundColor: genderItems[item.id] ? 'var(--color-green)' : 'transparent',
+                          borderRadius: genderItems[item.id] ? 'var(--radius-sm)' : '0',
                         }}
                       >
                         <div className="flex items-start gap-4">
@@ -296,10 +296,10 @@ const handleItemTap = (itemId: string, itemName: string) => {
                           </div>
                         </div>
                         <div className="flex items-center gap-2" style={{ flexShrink: 0, marginLeft: '16px' }}>
-                          {addedItemIds.includes(item.id) && (
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--color-primary)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                              <polyline points="20 6 9 17 4 12" />
-                            </svg>
+                          {genderItems[item.id] && (
+                            <span style={{ backgroundColor: 'var(--color-primary)', color: 'var(--color-white)', borderRadius: '50%', width: '18px', height: '18px', fontSize: '10px', fontWeight: 'var(--font-semibold)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                              {genderItems[item.id]}
+                            </span>
                           )}
                           <span style={{ color: 'var(--color-primary)', fontSize: 'var(--text-sm)', fontWeight: 'var(--font-regular)' }}>
                             €{Number(item.price).toFixed(2)}

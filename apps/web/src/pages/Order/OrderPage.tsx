@@ -559,9 +559,15 @@ export default function OrderPage() {
     </div>
   ) : null;
 
+const activeSuggestionFiltered = activeSuggestionGender
+    ? (suggestionsByGender[activeSuggestionGender] ?? []).filter(
+        (s: any) => !new Set(allItems.map(i => i.menuItemId)).has(s.itemId)
+      )
+    : [];
+
   const suggestionsOverlay = suggestionsOpen && activeSuggestionGender ? (
     <SuggestionsBrowser
-      suggestions={suggestionsByGender[activeSuggestionGender] ?? []}
+      suggestions={activeSuggestionFiltered}
       groupLetter={activeSuggestionGroupLetter}
       onAddItem={handleAddAISuggestedItem}
       onClose={() => { setSuggestionsOpen(false); setActiveSuggestionGender(null); }}

@@ -101,10 +101,19 @@ export default function OrderPage() {
 
       const socket = io(API_BASE || 'http://localhost:3001', {
         query: { restaurantId },
-        transports: ['websocket'],
+        transports: ['websocket', 'polling'],
+        reconnection: true,
+        reconnectionAttempts: Infinity,
+        reconnectionDelay: 1000,
+        reconnectionDelayMax: 5000,
       });
       socketInstance = socket;
       socketRef.current = socket;
+
+      socket.on('reconnect', () => {
+        // Refresh orders after reconnect to catch any missed updates
+        loadOrders();
+      });
 
       socket.on('table:status_changed', async ({ tableId, newStatus }: { tableId: string; newStatus: string }) => {
         if (ignoringStatusChange.current) return;

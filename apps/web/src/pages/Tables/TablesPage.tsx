@@ -54,10 +54,19 @@ export default function TablesPage() {
 
     const socket = io(API_BASE || "http://localhost:3001", {
       query: { restaurantId },
-      transports: ['websocket'],
+      transports: ['websocket', 'polling'],
+      reconnection: true,
+      reconnectionAttempts: Infinity,
+      reconnectionDelay: 1000,
+      reconnectionDelayMax: 5000,
     });
 
     socketRef.current = socket;
+
+    socket.on('reconnect', () => {
+      // Refresh tables after reconnect to catch any missed status changes
+      fetchTables();
+    });
 
     socket.on('table:status_changed', ({ tableId, newStatus }: { tableId: string; newStatus: string }) => {
       setTables(prev =>

@@ -126,10 +126,14 @@ export default function OrderPage() {
   }, [editingItemId]);
 
   const loadSessionInfo = async () => {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 10000);
     try {
       const sessionRes = await fetch(`${API_BASE}/api/sessions/${sessionId}`, {
         credentials: 'include',
+        signal: controller.signal,
       });
+      clearTimeout(timeout);
       if (!sessionRes.ok) return;
       const sessionData = await sessionRes.json();
       const s = sessionData.session;
@@ -145,17 +149,22 @@ export default function OrderPage() {
       const tablesData = await tablesRes.json();
       const table = tablesData.tables.find((t: any) => t.id === s.table_id);
       if (table) setTableLabel(table.label);
-    } catch {
-      // fail silently
+    } catch (err: any) {
+      clearTimeout(timeout);
+      // fail silently — session info is non-critical
     }
   };
 
   const loadOrders = async () => {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 10000);
     try {
       const response = await fetch(`${API_BASE}/api/sessions/${sessionId}/orders`, {
         credentials: 'include',
+        signal: controller.signal,
       });
 
+      clearTimeout(timeout);
       if (response.status === 401) { localStorage.clear(); navigate('/login'); return; }
 
       const data = await response.json();
@@ -175,8 +184,13 @@ export default function OrderPage() {
       setHasModifiedOrders(hasModified);
 
       setIsLoading(false);
-    } catch {
-      setError('Unable to load orders');
+    } catch (err: any) {
+      clearTimeout(timeout);
+      if (err.name === 'AbortError') {
+        setError('Loading orders timed out. Please refresh.');
+      } else {
+        setError('Unable to load orders');
+      }
       setIsLoading(false);
     }
   };
@@ -278,11 +292,15 @@ export default function OrderPage() {
     setIsSending(true);
     setError('');
 
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 10000);
     try {
       const response = await fetch(`${API_BASE}/api/orders/${currentOrderId}/send`, {
         method: 'POST',
         credentials: 'include',
+        signal: controller.signal,
       });
+      clearTimeout(timeout);
 
       const data = await response.json();
 
@@ -308,8 +326,13 @@ export default function OrderPage() {
           tableLabel: tableLabel,
         },
       });
-    } catch {
-      setError('Unable to send order');
+    } catch (err: any) {
+      clearTimeout(timeout);
+      if (err.name === 'AbortError') {
+        setError('Order timed out. Please try again.');
+      } else {
+        setError('Unable to send order');
+      }
       setIsSending(false);
     }
   };
@@ -559,10 +582,10 @@ export default function OrderPage() {
     </div>
   ) : null;
 
-const activeSuggestionFiltered = activeSuggestionGender
+  const activeSuggestionFiltered = activeSuggestionGender
     ? (suggestionsByGender[activeSuggestionGender] ?? []).filter(
-        (s: any) => !new Set(allItems.map(i => i.menuItemId)).has(s.itemId)
-      )
+      (s: any) => !new Set(allItems.map(i => i.menuItemId)).has(s.itemId)
+    )
     : [];
 
   const suggestionsOverlay = suggestionsOpen && activeSuggestionGender ? (

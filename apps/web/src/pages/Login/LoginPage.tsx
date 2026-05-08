@@ -30,14 +30,19 @@ export default function LoginPage() {
 
     setIsLoading(true);
 
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 15000);
+
     try {
       const response = await fetch(`${API_BASE}/api/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
+        signal: controller.signal,
         body: JSON.stringify({ accountNumber, password, rememberMe }),
       });
 
+      clearTimeout(timeout);
       const data = await response.json();
 
       if (!response.ok) {
@@ -52,8 +57,13 @@ export default function LoginPage() {
       localStorage.setItem('isLoggedIn', 'true');
 
       navigate('/tables');
-    } catch {
-      setError('Unable to connect to server');
+    } catch (err: any) {
+      clearTimeout(timeout);
+      if (err.name === 'AbortError') {
+        setError('Login timed out. The server may be starting up — please try again in a few seconds.');
+      } else {
+        setError('Unable to connect to server');
+      }
       setIsLoading(false);
     }
   };

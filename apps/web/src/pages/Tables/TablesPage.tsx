@@ -1,5 +1,5 @@
-import { API_BASE } from '../../config';
 // restmentor/apps/web/src/pages/Tables/TablesPage.tsx
+import { API_BASE } from '../../config';
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { io, Socket } from 'socket.io-client';
@@ -69,10 +69,16 @@ export default function TablesPage() {
   }, []);
 
   const fetchTables = async () => {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 10000);
+
     try {
       const response = await fetch(`${API_BASE}/api/tables`, {
         credentials: 'include',
+        signal: controller.signal,
       });
+
+      clearTimeout(timeout);
 
       if (response.status === 401) {
         localStorage.clear();
@@ -83,8 +89,13 @@ export default function TablesPage() {
       const data = await response.json();
       setTables(data.tables);
       setIsLoading(false);
-    } catch {
-      setError('Unable to load tables');
+    } catch (err: any) {
+      clearTimeout(timeout);
+      if (err.name === 'AbortError') {
+        setError('Request timed out. Please check your connection and refresh.');
+      } else {
+        setError('Unable to load tables');
+      }
       setIsLoading(false);
     }
   };

@@ -59,7 +59,7 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-5" style={{ backgroundColor: 'var(--color-background)', fontFamily: 'var(--font-family)' }}>
+    <main className="min-h-screen flex items-center justify-center p-5" style={{ backgroundColor: 'var(--color-background)', fontFamily: 'var(--font-family)' }}>
       <div className="w-full max-w-[420px] flex flex-col items-center animate-fade-in">
 
         {/* Logo */}
@@ -67,7 +67,7 @@ export default function LoginPage() {
 
         {/* Illustration Card */}
         <div className="w-full overflow-hidden mb-4" style={{ backgroundColor: 'var(--color-white)', borderRadius: 'var(--radius-lg)', boxShadow: 'var(--shadow-card)' }}>
-          <img src={waiterImg} alt="Waiter illustration" className="w-full block" style={{ objectFit: 'cover', objectPosition: 'center bottom' }} />
+          <img src={waiterImg} alt="Waiter illustration" className="w-full block" width="400" height="300" style={{ objectFit: 'cover', objectPosition: 'center bottom' }} />
         </div>
 
         {/* Form Card */}
@@ -173,6 +173,6 @@ export default function LoginPage() {
           Create an Account
         </button>
       </div>
-    </div>
+    </main>
   );
 }

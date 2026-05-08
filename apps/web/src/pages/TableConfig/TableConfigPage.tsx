@@ -91,7 +91,7 @@ export default function TableConfigPage() {
   };
 
   return (
-    <div className="min-h-screen" style={{ backgroundColor: 'var(--color-background)', fontFamily: 'var(--font-family)' }}>
+    <main className="min-h-screen" style={{ backgroundColor: 'var(--color-background)', fontFamily: 'var(--font-family)' }}>
 
       <Header userName={user.name} />
 
@@ -215,6 +215,6 @@ export default function TableConfigPage() {
 
 
       </div>
-    </div>
+    </main>
   );
 }

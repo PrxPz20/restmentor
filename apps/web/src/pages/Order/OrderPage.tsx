@@ -489,9 +489,9 @@ export default function OrderPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: 'var(--color-background)', fontFamily: 'var(--font-family)' }}>
+      <main className="min-h-screen flex items-center justify-center" style={{ backgroundColor: 'var(--color-background)', fontFamily: 'var(--font-family)' }}>
         <div className="w-[22px] h-[22px] border-[2.5px] rounded-full animate-spin" style={{ borderColor: 'rgba(3, 40, 19, 0.2)', borderTopColor: 'var(--color-primary)' }} />
-      </div>
+      </main>
     );
   }
 
@@ -595,7 +595,7 @@ const activeSuggestionFiltered = activeSuggestionGender
   ) : null;
 
   return (
-    <div className="min-h-screen" style={{ backgroundColor: 'var(--color-background)', fontFamily: 'var(--font-family)' }}>
+    <main className="min-h-screen" style={{ backgroundColor: 'var(--color-background)', fontFamily: 'var(--font-family)' }}>
 
       {guestEditorOverlay}
       {suggestionsOverlay}
@@ -999,6 +999,6 @@ const activeSuggestionFiltered = activeSuggestionGender
         </button>
 
       </div>
-    </div>
+    </main>
   );
 }

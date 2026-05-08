@@ -31,7 +31,7 @@ export default function CleaningPage() {
   };
 
   return (
-    <div className="min-h-screen" style={{ backgroundColor: 'var(--color-background)', fontFamily: 'var(--font-family)' }}>
+    <main className="min-h-screen" style={{ backgroundColor: 'var(--color-background)', fontFamily: 'var(--font-family)' }}>
 
       <Header userName={user.name} />
 
@@ -108,6 +108,6 @@ export default function CleaningPage() {
 
         </div>
       </div>
-    </div>
+    </main>
   );
 }

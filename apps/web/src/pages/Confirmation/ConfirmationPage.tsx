@@ -25,7 +25,7 @@ export default function ConfirmationPage() {
   }
 
   return (
-    <div className="min-h-screen" style={{ backgroundColor: 'var(--color-background)', fontFamily: 'var(--font-family)' }}>
+    <main className="min-h-screen" style={{ backgroundColor: 'var(--color-background)', fontFamily: 'var(--font-family)' }}>
 
       <Header userName={user.name} />
 
@@ -37,7 +37,7 @@ export default function ConfirmationPage() {
         </span>
 
         {/* Chef Illustration */}
-        <img src={chefImg} alt="Chef illustration" className="w-full max-w-[320px] h-auto my-4" />
+        <img src={chefImg} alt="Chef illustration" className="w-full max-w-[320px] h-auto my-4" width="320" height="320" />
 
         {/* Subtitle */}
         <span style={{ color: 'var(--color-primary)', fontSize: '15px', fontWeight: 'var(--font-regular)', textAlign: 'center', lineHeight: 1.4 }}>
@@ -107,6 +107,6 @@ export default function ConfirmationPage() {
           </button>
         </div>
       </div>
-    </div>
+    </main>
   );
 }

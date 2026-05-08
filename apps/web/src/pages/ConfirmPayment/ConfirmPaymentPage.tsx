@@ -106,16 +106,16 @@ export default function ConfirmPaymentPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: 'var(--color-background)', fontFamily: 'var(--font-family)' }}>
+      <main className="min-h-screen flex items-center justify-center" style={{ backgroundColor: 'var(--color-background)', fontFamily: 'var(--font-family)' }}>
         <div className="w-[22px] h-[22px] border-[2.5px] rounded-full animate-spin" style={{ borderColor: 'rgba(3, 40, 19, 0.2)', borderTopColor: 'var(--color-primary)' }} />
-      </div>
+      </main>
     );
   }
 
   const totalGuests = (session?.guest_males ?? 0) + (session?.guest_females ?? 0) + (session?.guest_kids ?? 0);
 
   return (
-    <div className="min-h-screen" style={{ backgroundColor: 'var(--color-background)', fontFamily: 'var(--font-family)' }}>
+    <main className="min-h-screen" style={{ backgroundColor: 'var(--color-background)', fontFamily: 'var(--font-family)' }}>
       <Header userName={user.name} />
 
       <div className="flex flex-col items-center" style={{ paddingLeft: 'var(--page-padding)', paddingRight: 'var(--page-padding)', paddingTop: 'var(--section-top)' }}>
@@ -126,7 +126,7 @@ export default function ConfirmPaymentPage() {
         </span>
 
         {/* Money Illustration */}
-        <img src={moneyImg} alt="Payment illustration" className="w-full max-w-[320px] h-auto" style={{ marginTop: '16px', marginBottom: '16px' }} />
+        <img src={moneyImg} alt="Payment illustration" className="w-full max-w-[320px] h-auto" width="320" height="320" style={{ marginTop: '16px', marginBottom: '16px' }} />
 
         {/* Subtitle */}
         <span style={{ color: 'var(--color-primary)', fontSize: '15px', fontWeight: 'var(--font-semibold)', textAlign: 'center', lineHeight: 1.4, marginBottom: '24px' }}>
@@ -236,6 +236,6 @@ export default function ConfirmPaymentPage() {
         </button>
 
       </div>
-    </div>
+    </main>
   );
 }

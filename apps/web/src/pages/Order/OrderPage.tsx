@@ -61,6 +61,7 @@ export default function OrderPage() {
   const [localCounts, setLocalCounts] = useState({ males: 0, females: 0, kids: 0 });
   const [isUpdatingGuests, setIsUpdatingGuests] = useState(false);
   const ignoringStatusChange = useRef(false);
+  const initRef = useRef(false);
 
   const updateLocalCount = (key: string, delta: number) => {
     setLocalCounts(prev => ({
@@ -77,6 +78,9 @@ export default function OrderPage() {
   const user = JSON.parse(localStorage.getItem('user') || '{}');
 
   useEffect(() => {
+    if (initRef.current) return;
+    initRef.current = true;
+
     loadSessionInfo();
     loadOrders();
     restoreSuggestions();
@@ -142,13 +146,7 @@ export default function OrderPage() {
         females: s.guest_females ?? 0,
         kids: s.guest_kids ?? 0,
       });
-      const tablesRes = await fetch(`${API_BASE}/api/tables`, {
-        credentials: 'include',
-      });
-      if (!tablesRes.ok) return;
-      const tablesData = await tablesRes.json();
-      const table = tablesData.tables.find((t: any) => t.id === s.table_id);
-      if (table) setTableLabel(table.label);
+      if (s.table_label) setTableLabel(s.table_label);
     } catch (err: any) {
       clearTimeout(timeout);
       // fail silently — session info is non-critical
@@ -171,7 +169,7 @@ export default function OrderPage() {
       setOrders(data.orders);
 
       if (data.orders.length === 0 || data.orders.every((o: OrderData) => o.status !== 'draft')) {
-        await createNewOrder();
+        await createNewOrder(); // returns order ID, does NOT call loadOrders again
       } else {
         const draft = data.orders.find((o: OrderData) => o.status === 'draft');
         if (draft) {
@@ -195,20 +193,21 @@ export default function OrderPage() {
     }
   };
 
-  const createNewOrder = async () => {
+  const createNewOrder = async (): Promise<string | null> => {
     try {
       const response = await fetch(`${API_BASE}/api/sessions/${sessionId}/orders`, {
         method: 'POST',
         credentials: 'include',
       });
 
-      if (response.status === 401) { localStorage.clear(); navigate('/login'); return; }
+      if (response.status === 401) { localStorage.clear(); navigate('/login'); return null; }
 
       const data = await response.json();
       setCurrentOrderId(data.order.id);
-      await loadOrders();
+      return data.order.id;
     } catch {
       setError('Failed to create order');
+      return null;
     }
   };
 

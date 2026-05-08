@@ -122,7 +122,15 @@ export async function sessionRoutes(app: FastifyInstance) {
       const { id } = request.params as { id: string };
 
       const result = await db.execute(
-        sql`SELECT id, table_id, waiter_id, guest_males, guest_females, guest_kids, opened_at, paid_at, closed_at FROM table_sessions WHERE id = ${id} LIMIT 1`
+        sql`SELECT
+              ts.id, ts.table_id, ts.waiter_id,
+              ts.guest_males, ts.guest_females, ts.guest_kids,
+              ts.opened_at, ts.paid_at, ts.closed_at,
+              t.label AS table_label
+            FROM table_sessions ts
+            JOIN tables t ON t.id = ts.table_id
+            WHERE ts.id = ${id}
+            LIMIT 1`
       );
 
       const session = result.rows[0];

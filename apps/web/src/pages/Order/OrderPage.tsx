@@ -83,9 +83,10 @@ export default function OrderPage() {
     initRef.current = true;
 
     loadSessionInfo();
-    loadOrders();
-    restoreSuggestions();
     loadMenu();
+    loadOrders().then((hasExistingOrders) => {
+      if (hasExistingOrders) restoreSuggestions();
+    });
 
     // ── WebSocket: redirect if table status changes ───────
     let socketInstance: Socket | null = null;
@@ -164,7 +165,7 @@ export default function OrderPage() {
     }
   };
 
-  const loadOrders = async () => {
+  const loadOrders = async (): Promise<boolean> => {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 10000);
     try {
@@ -174,13 +175,15 @@ export default function OrderPage() {
       });
 
       clearTimeout(timeout);
-      if (response.status === 401) { localStorage.clear(); navigate('/login'); return; }
+      if (response.status === 401) { localStorage.clear(); navigate('/login'); return false; }
 
       const data = await response.json();
       setOrders(data.orders);
 
+      const hasExistingItems = data.orders.some((o: OrderData) => o.items && o.items.length > 0);
+
       if (data.orders.length === 0 || data.orders.every((o: OrderData) => o.status !== 'draft')) {
-        await createNewOrder(); // returns order ID, does NOT call loadOrders again
+        await createNewOrder();
       } else {
         const draft = data.orders.find((o: OrderData) => o.status === 'draft');
         if (draft) {
@@ -193,6 +196,7 @@ export default function OrderPage() {
       setHasModifiedOrders(hasModified);
 
       setIsLoading(false);
+      return hasExistingItems;
     } catch (err: any) {
       clearTimeout(timeout);
       if (err.name === 'AbortError') {
@@ -201,6 +205,7 @@ export default function OrderPage() {
         setError('Unable to load orders');
       }
       setIsLoading(false);
+      return false;
     }
   };
 

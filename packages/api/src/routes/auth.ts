@@ -2,9 +2,8 @@
 import { FastifyInstance } from 'fastify';
 import '@fastify/cookie';
 import '@fastify/jwt';
-import { neon } from '@neondatabase/serverless';
-import { drizzle } from 'drizzle-orm/neon-http';
 import { sql } from 'drizzle-orm';
+import { getMasterDb, getTenantDbCached } from '../utils/db.js';
 import bcryptjs from 'bcryptjs';
 import { z } from 'zod';
 import 'dotenv/config';
@@ -126,18 +125,8 @@ export async function authRoutes(app: FastifyInstance) {
       });
     }
 
-    const masterUrl = process.env.MASTER_DATABASE_URL;
-    if (!masterUrl) {
-      app.log.error('MASTER_DATABASE_URL is not set');
-      return reply.status(500).send({
-        statusCode: 500,
-        error: 'Internal Server Error',
-        message: 'Server configuration error',
-      });
-    }
-
-    const masterClient = neon(masterUrl);
-    const masterDb = drizzle(masterClient);
+    // Use master DB singleton — prevents cold start on every login
+    const masterDb = getMasterDb();
 
     const restaurantResult = await masterDb.execute(
       sql`SELECT id, name, slug, neon_connection_string, status FROM restaurants WHERE slug = ${restaurantSlug} LIMIT 1`
@@ -162,8 +151,11 @@ export async function authRoutes(app: FastifyInstance) {
       });
     }
 
-    const tenantClient = neon(restaurant.neon_connection_string as string);
-    const tenantDb = drizzle(tenantClient);
+    // Use cached tenant connection — one connection per restaurant
+    const tenantDb = getTenantDbCached(
+      restaurant.id as string,
+      restaurant.neon_connection_string as string
+    );
 
     const userResult = await tenantDb.execute(
       sql`SELECT id, waiter_number, name, role, password_hash, is_active FROM users WHERE waiter_number = ${waiterNumber} LIMIT 1`

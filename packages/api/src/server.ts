@@ -1,6 +1,7 @@
 // restmentor/packages/api/src/server.ts
 import { buildApp } from './app.js';
 import { Server } from 'socket.io';
+import { pingMasterDb, evictStaleTenantConnections, getMasterDb } from './utils/db.js';
 import 'dotenv/config';
 
 // ── Validate required environment variables on startup ────────
@@ -79,6 +80,26 @@ async function start() {
     app.log.info(`RestMentor API running on http://localhost:${PORT}`);
     app.log.info(`WebSocket server ready on ws://localhost:${PORT}`);
     app.log.info(`Health check: http://localhost:${PORT}/api/health`);
+
+    // ── Warm master DB immediately on boot ────────────
+    // Prevents first login from hitting a cold Neon DB
+    getMasterDb();
+    await pingMasterDb();
+    app.log.info('Master DB warmed on startup');
+
+    // ── Keepalive: ping master DB every 4 minutes ─────
+    // Neon suspends after ~5 minutes of inactivity
+    setInterval(async () => {
+      await pingMasterDb();
+    }, 4 * 60 * 1000);
+
+    // ── Eviction: clean stale tenant connections every 30 minutes ──
+    setInterval(() => {
+      const evicted = evictStaleTenantConnections();
+      if (evicted > 0) {
+        app.log.info(`Evicted ${evicted} stale tenant DB connection(s) from cache`);
+      }
+    }, 30 * 60 * 1000);
   } catch (err) {
     app.log.error(err);
     process.exit(1);

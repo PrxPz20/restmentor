@@ -63,7 +63,7 @@ export default function LoginPage() {
       <div className="w-full max-w-[420px] flex flex-col items-center animate-fade-in">
 
         {/* Logo */}
-        <img src={logo} alt="RestMentor" className="h-10 mb-6" style={{ width: '189.89px' }}/>
+        <img src={logo} alt="RestMentor" className="h-10 mb-6" width="190" height="40" style={{ width: '189.89px' }}/>
 
         {/* Illustration Card */}
         <div className="w-full overflow-hidden mb-4" style={{ backgroundColor: 'var(--color-white)', borderRadius: 'var(--radius-lg)', boxShadow: 'var(--shadow-card)' }}>

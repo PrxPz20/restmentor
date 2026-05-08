@@ -519,7 +519,7 @@ export default function OrderPage() {
               <div key={g.key} style={{ padding: '16px', borderBottom: i < arr.length - 1 ? '1px solid var(--color-separator)' : 'none' }}>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <img src={g.icon} alt={g.label} style={{ width: '24px', height: '24px', objectFit: 'contain' }} />
+                    <img src={g.icon} alt={g.label} width="24" height="24" style={{ width: '24px', height: '24px', objectFit: 'contain' }} />
                     <span style={{ color: 'var(--color-primary)', fontSize: '12px', fontWeight: 'var(--font-semibold)', textTransform: 'uppercase' }}>{g.label}</span>
                   </div>
                   <div className="flex items-center gap-3">
@@ -718,7 +718,7 @@ const activeSuggestionFiltered = activeSuggestionGender
                 className="flex flex-col items-center justify-center gap-2 py-4 border-none cursor-pointer transition-transform active:scale-95"
                 style={{ backgroundColor: 'var(--color-white)', borderRadius: 'var(--radius-sm)', boxShadow: 'var(--shadow-card)', fontFamily: 'var(--font-family)' }}
               >
-                <img src={gender.icon} alt={gender.label} style={{ width: '28px', height: '28px', objectFit: 'contain' }} />
+                <img src={gender.icon} alt={gender.label} width="28" height="28" style={{ width: '28px', height: '28px', objectFit: 'contain' }} />
                 <span style={{ color: 'var(--color-primary)', fontSize: 'var(--text-md)', fontWeight: 'var(--font-regular)' }}>{gender.label}</span>
               </button>
             ))}
@@ -758,7 +758,7 @@ const activeSuggestionFiltered = activeSuggestionGender
                       </span>
                     </div>
                     <div className="flex items-center gap-3 mb-3">
-                      <img src={genderIcon} alt={genderLabel} style={{ width: '28px', height: '28px', objectFit: 'contain' }} />
+                      <img src={genderIcon} alt={genderLabel} width="28" height="28" style={{ width: '28px', height: '28px', objectFit: 'contain' }} />
                       <span style={{ color: 'var(--color-primary)', fontSize: 'var(--text-md)', fontWeight: 'var(--font-semibold)' }}>{genderLabel}</span>
                     </div>
 
@@ -889,7 +889,7 @@ const activeSuggestionFiltered = activeSuggestionGender
                             </>
                           ) : (
                             <>
-                              <img src={aiSuggestionIcon} alt="AI" style={{ width: '36px', height: '36px', objectFit: 'contain', flexShrink: 0, animation: 'fadeSlideUp 0.4s ease-out' }} />
+                              <img src={aiSuggestionIcon} alt="AI" width="36" height="36" style={{ width: '36px', height: '36px', objectFit: 'contain', flexShrink: 0, animation: 'fadeSlideUp 0.4s ease-out' }} />
                               <div style={{ animation: 'fadeSlideUp 0.4s ease-out 0.1s both', display: 'flex', flex: 1, gap: '16px', paddingLeft: '16px' }}>
                                 {groupSuggestions.slice(0, 2).map((s: any) => (
                                   <div key={s.itemId} className="flex flex-col" style={{ flex: 1 }}>

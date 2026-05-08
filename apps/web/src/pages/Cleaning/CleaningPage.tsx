@@ -44,8 +44,8 @@ export default function CleaningPage() {
 
         {/* Illustration */}
         <div className="relative flex items-center justify-center my-4" style={{ width: '260px', height: '260px' }}>
-          <img src={ellipseImg} alt="" style={{ position: 'absolute', width: '100%', height: '100%', objectFit: 'contain' }} />
-          <img src={cleaningImg} alt="Cleaning illustration" style={{ position: 'relative', zIndex: 1, width: '80%', height: '80%', objectFit: 'contain' }} />
+          <img src={ellipseImg} alt="" width="320" height="320" style={{ position: 'absolute', width: '100%', height: '100%', objectFit: 'contain' }} />
+          <img src={cleaningImg} alt="Cleaning illustration" width="256" height="256" style={{ position: 'relative', zIndex: 1, width: '80%', height: '80%', objectFit: 'contain' }} />
         </div>
 
         {/* Subtitle */}

@@ -145,7 +145,7 @@ export default function ConfirmPaymentPage() {
           ].filter(g => g.count > 0).map((g, i, arr) => (
             <div key={g.label} className="flex items-center justify-between py-2" style={{ borderBottom: i < arr.length - 1 ? '1px solid var(--color-separator)' : 'none' }}>
               <div className="flex items-center gap-2">
-                <img src={g.icon} alt={g.label} style={{ width: '20px', height: '20px', objectFit: 'contain', opacity: 0.7 }} />
+                <img src={g.icon} alt={g.label} width="20" height="20" style={{ width: '20px', height: '20px', objectFit: 'contain', opacity: 0.7 }} />
                 <span style={{ color: 'var(--color-primary)', fontSize: 'var(--text-sm)', fontWeight: 'var(--font-light)' }}>{g.label}</span>
               </div>
               <span style={{ color: 'var(--color-primary)', fontSize: 'var(--text-sm)', fontWeight: 'var(--font-semibold)' }}>{g.count}</span>

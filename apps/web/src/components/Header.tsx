@@ -38,7 +38,7 @@ export default function Header({ userName = 'User' }: HeaderProps) {
       className="flex items-center justify-between pt-5 pb-3"
       style={{ paddingLeft: 'var(--page-padding)', paddingRight: 'var(--page-padding)' }}
     >
-      <img src={logo} alt="RestMentor" style={{ width: '189.89px' }} />
+      <img src={logo} alt="RestMentor" width="190" height="40" style={{ width: '189.89px' }} />
       <div className="flex items-center gap-3">
         <div
           className="w-9 h-9 rounded-full flex items-center justify-center text-xs"

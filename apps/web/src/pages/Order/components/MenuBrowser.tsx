@@ -106,7 +106,7 @@ export default function MenuBrowser({ activeGender, onSelectItem, onClose, onSwi
                 fontFamily: 'var(--font-family)',
               }}
             >
-              <img src={g.icon} alt={g.label} style={{ width: '28px', height: '28px', objectFit: 'contain' }} />
+              <img src={g.icon} alt={g.label} width="28" height="28" style={{ width: '28px', height: '28px', objectFit: 'contain' }} />
               <span style={{
                 color: 'var(--color-primary)',
                 fontSize: 'var(--text-md)',

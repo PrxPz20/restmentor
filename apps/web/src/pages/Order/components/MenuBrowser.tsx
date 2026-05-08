@@ -1,7 +1,5 @@
 // restmentor/apps/web/src/pages/Order/components/MenuBrowser.tsx
-import { API_BASE } from '../../../config';
-import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState } from 'react';
 import menIcon from '../../../assets/men.png';
 import femaleIcon from '../../../assets/female.png';
 import kidIcon from '../../../assets/kid.png';
@@ -29,6 +27,7 @@ interface MenuBrowserProps {
   onClose: () => void;
   onSwitchGender: (gender: GenderTarget) => void;
   genderItems: Record<string, number>;
+  menu: MenuCategoryData[];
 }
 
 const GENDER_CONFIG = [
@@ -37,32 +36,9 @@ const GENDER_CONFIG = [
   { key: 'kid' as GenderTarget, label: 'Kid', icon: kidIcon },
 ];
 
-export default function MenuBrowser({ activeGender, onSelectItem, onClose, onSwitchGender, genderItems }: MenuBrowserProps) {
-  const [menu, setMenu] = useState<MenuCategoryData[]>([]);
+export default function MenuBrowser({ activeGender, onSelectItem, onClose, onSwitchGender, genderItems, menu }: MenuBrowserProps) {
   const [expandedCategory, setExpandedCategory] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
-  const navigate = useNavigate();
-
-  useEffect(() => {
-    loadMenu();
-  }, []);
-
-  const loadMenu = async () => {
-    try {
-      const response = await fetch(`${API_BASE}/api/menu`, {
-        credentials: 'include',
-      });
-
-      if (response.status === 401) { localStorage.clear(); navigate('/login'); return; }
-
-      const data = await response.json();
-      setMenu(data.menu);
-      setIsLoading(false);
-    } catch {
-      setIsLoading(false);
-    }
-  };
 
   const handleItemTap = (itemId: string, itemName: string) => {
     onSelectItem(itemId, itemName);
@@ -71,14 +47,6 @@ export default function MenuBrowser({ activeGender, onSelectItem, onClose, onSwi
   const toggleCategory = (catId: string) => {
     setExpandedCategory(expandedCategory === catId ? null : catId);
   };
-
-  if (isLoading) {
-    return (
-      <div className="fixed inset-0 flex items-center justify-center" style={{ backgroundColor: 'rgba(0,0,0,0.3)', zIndex: 50 }}>
-        <div className="w-[22px] h-[22px] border-[2.5px] rounded-full animate-spin" style={{ borderColor: 'rgba(255,255,255,0.3)', borderTopColor: 'var(--color-white)' }} />
-      </div>
-    );
-  }
 
   return (
     <div className="fixed inset-0 flex flex-col" style={{ zIndex: 50 }}>

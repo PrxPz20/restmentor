@@ -60,6 +60,7 @@ export default function OrderPage() {
   const [guestCounts, setGuestCounts] = useState({ males: 0, females: 0, kids: 0 });
   const [localCounts, setLocalCounts] = useState({ males: 0, females: 0, kids: 0 });
   const [isUpdatingGuests, setIsUpdatingGuests] = useState(false);
+  const [menu, setMenu] = useState<any[]>([]);
   const ignoringStatusChange = useRef(false);
   const initRef = useRef(false);
 
@@ -84,6 +85,7 @@ export default function OrderPage() {
     loadSessionInfo();
     loadOrders();
     restoreSuggestions();
+    loadMenu();
 
     // ── WebSocket: redirect if table status changes ───────
     let socketInstance: Socket | null = null;
@@ -435,6 +437,17 @@ export default function OrderPage() {
     }
   };
 
+  const loadMenu = async () => {
+    try {
+      const response = await fetch(`${API_BASE}/api/menu`, { credentials: 'include' });
+      if (response.status === 401) { localStorage.clear(); navigate('/login'); return; }
+      const data = await response.json();
+      setMenu(data.menu ?? []);
+    } catch {
+      // fail silently — menu will retry when browser opens
+    }
+  };
+
   const restoreSuggestions = async () => {
     if (!sessionId) return;
     try {
@@ -613,6 +626,7 @@ export default function OrderPage() {
       onClose={() => { setMenuOpen(false); setActiveGender(null); }}
       onSwitchGender={(g) => setActiveGender(g)}
       genderItems={genderItems}
+      menu={menu}
     />
   ) : null;
 
